@@ -1,0 +1,89 @@
+// Neutral bottleneck using carrying-capacity
+
+initialize() {
+	//setSeed(1694628549537);
+	initializeSLiMModelType("nonWF");
+	initializeTreeSeq();
+	defineConstant("simID", getSeed());
+	if (exists("slimgui")) {
+		//defineConstant("O", "nonWF_"+simID+".trees");
+		defineConstant("O", "nonWF_neutral_"+simID+".trees");
+	}
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 51304565);
+	initializeMutationRate(0);
+	
+	//Read HapMap genetic map for chr22
+	lines = readFile("/home/users/cindy/genetic_map_GRCh37_chr22.txt");
+	rates = NULL;
+	ends = NULL;
+	for (line in lines)
+	{
+		components = strsplit(line, "\t");
+		if (components[0]=="Chromosome")
+			next;
+		ends = c(ends, asInteger(components[1]));
+		rates = c(rates, asFloat(components[2]));
+	}
+	ends = c(ends[1:(size(ends)-1)] - 2, 51304565);
+	rates = rates * 1e-8;
+	initializeRecombinationRate(rates, ends);
+}
+
+
+// WF-like reproduction - systematically returns to K
+reproduction() {
+	K = sim.getValue("K");
+	for (i in seqLen(K))
+	{
+		firstParent = p2.sampleIndividuals(1);
+		secondParent = p2.sampleIndividuals(1);
+		p2.addCrossed(firstParent, secondParent);
+	}
+	self.active = 0;
+}
+
+// Opens Gravel baseline simulation
+58000 early() {
+	sim.readFromPopulationFile("/home/users/cindy/data/finalGravel_1897530535422.trees");
+	sim.setValue("K", p2.individualCount);
+}
+
+// Standing variation (neutral mutation)
+58000 late(){
+	mut = sim.mutations;
+	catn(mut);
+}
+
+// WF-like non-overlapping generations
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+
+// Introduce carrying capacity with no selection - NOTE: need to remove individuals of age 1 or more because these callbacks replace the early()
+58002:58005 early() {
+	inds = sim.subpopulations.individuals;
+	p2.fitnessScaling = (p2.individualCount*0.3)/ sum(p2.individuals.fitnessScaling);
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+
+
+// Output per generation
+58000:58016 late() {
+	sim.treeSeqRememberIndividuals(p2.individuals);
+	freq=sim.mutationFrequencies(p2);
+	inds = sim.subpopulations.individuals;
+	wt = size(inds[inds.countOfMutationsOfType(m1) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m1) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m1) == 2]);
+	catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2) + "\t" + wt + "\t" + het + "\t" + hom +  "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 2].index)));
+}
+
+// Tree output
+58016 late() {
+	sim.treeSeqOutput("/home/users/cindy/data/nonWF_neutral_"+simID+".trees");
+}
