@@ -63,11 +63,11 @@ early()
 	inds[inds.age > 0].fitnessScaling = 0.0;
 }
 
-// Introduce carrying capacity with no selection - NOTE: need to remove individuals of age 1 or more because these callbacks replace the early()
+// Introduce carrying capacity with no selection - NOTE: fitness only applies to individuals of age 0 as this callback is parallel to early ()
 58002:58005 early() {
 	inds = sim.subpopulations.individuals;
+	inds = inds[inds.age < 1];
 	p2.fitnessScaling = (p2.individualCount*0.3)/ sum(p2.individuals.fitnessScaling);
-	inds[inds.age > 0].fitnessScaling = 0.0;
 }
 
 
