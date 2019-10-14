@@ -68,9 +68,9 @@ early()
 	K = sim.getValue("K");
 	inds = sim.subpopulations.individuals;
 	inds = inds[inds.age < 1];
-	//p2.fitnessScaling = (p2.individualCount*0.3)/ sum(p2.individuals.fitnessScaling);
-// Using K for population carrying capacity
-	p2.fitnessScaling = (K*0.3) / sum(p2.individuals.fitnessScaling);
+	p2.fitnessScaling = (size(inds)*0.3)/ sum(p2.individuals.fitnessScaling);
+// Using K for population carrying capacity 
+	//p2.fitnessScaling = (K*0.3) / sum(p2.individuals.fitnessScaling);
 }
 
 

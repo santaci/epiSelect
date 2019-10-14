@@ -1,4 +1,4 @@
-// Selection-driven bottleneck
+// Selection-driven bottleneck where everyone has 0.3 fitness
 
 initialize() {
 	//setSeed(1694628549537);
@@ -66,7 +66,7 @@ early()
 58002:58005 early() {
 	inds = sim.subpopulations.individuals;
 	inds = inds[inds.age < 1];
-	inds[inds.countOfMutationsOfType(m1)<2].fitnessScaling = 0.3;
+	inds.fitnessScaling = 0.3;
 	
 }
 
@@ -93,5 +93,5 @@ early()
 
 // Tree output
 58016 late() {
-	sim.treeSeqOutput(O);
+//	sim.treeSeqOutput(O);
 }
