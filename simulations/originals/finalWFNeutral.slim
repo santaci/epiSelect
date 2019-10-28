@@ -1,4 +1,4 @@
-// WF model neutral bottleneck
+// WF model neutral bottleneck using NEs from nonWF
 
 initialize() {
         initializeTreeSeq();
@@ -56,7 +56,7 @@ initialize() {
 }
 
 // Population size restored
-58005 early() {
+58005 late() {
         sim.mutations.setSelectionCoeff(0.0);
         p2.setSubpopulationSize(34039);
 }
@@ -85,5 +85,5 @@ initialize() {
 
 // Tree-output
 58016 late() {
-        sim.treeSeqOutput("/home/users/cindy/data/WF_"+simID+"_early.trees");
+        //sim.treeSeqOutput("/home/users/cindy/data/WF_"+simID+"_early.trees");
 }
