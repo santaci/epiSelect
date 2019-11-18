@@ -107,6 +107,7 @@ defineConstant("simID", getSeed());
 	p3.setSubpopulationSize(asInteger(p3_size));
 }
 
+// Set populations that are not of interest to zero before treeSeqOutput
 58000 {
 p1.setSubpopulationSize(0);
 p3.setSubpopulationSize(0);
@@ -116,6 +117,7 @@ p3.setSubpopulationSize(0);
 58000 late() {
 	sim.treeSeqOutput("/home/users/cindy/data/Gravel/finalGravel_" + simID + ".trees");	
 
+//NO LONGER USING
 // Remove migration matrix tables
 //	p1.setMigrationRates(c(p2, p3), c(0,0));
 //	p2.setMigrationRates(c(p1, p3), c(0,0));
