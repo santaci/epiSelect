@@ -1,0 +1,145 @@
+// nonWF neutral bottleneck after Gravel model
+
+initialize() {
+	//setSeed(1694628549537);
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T);
+	initializeTreeSeq();
+	defineConstant("simID", getSeed());
+	if (exists("slimgui")) {
+		//defineConstant("O", "nonWF_"+simID+".trees");
+		defineConstant("O", "nonWF_neutral_"+simID+".trees");
+		defineConstant("I", 1);
+		defineConstant("T1",18228);
+		defineConstant("T2",18862);
+		defineConstant("T3",19526);
+		defineConstant("T4",20983);
+		defineConstant("T5",22664);
+		defineConstant("T6",24952);
+		defineConstant("T7",27512);
+		defineConstant("T8",29827);
+		defineConstant("T9",31565);
+		defineConstant("T10",32713);
+		defineConstant("T11",33331);
+		defineConstant("T12",33657);
+		defineConstant("T13",33860);
+		defineConstant("T14",33957);
+		defineConstant("T15",33989);
+		defineConstant("T16",34018);
+		defineConstant("T17",34025);
+		defineConstant("T18",34033);
+		defineConstant("T19",34035);
+		defineConstant("T20",34038);
+	}
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 51304565);
+	initializeMutationRate(0);
+	
+	//Read HapMap genetic map for chr22
+	lines = readFile("/home/users/cindy/genetic_map_GRCh37_chr22.txt");
+	rates = NULL;
+	ends = NULL;
+	for (line in lines)
+	{
+		components = strsplit(line, "\t");
+		if (components[0]=="Chromosome")
+			next;
+		ends = c(ends, asInteger(components[1]));
+		rates = c(rates, asFloat(components[2]));
+	}
+	ends = c(ends[1:(size(ends)-1)] - 2, 51304565);
+	rates = rates * 1e-8;
+	initializeRecombinationRate(rates, ends);
+}
+
+
+// WF-like reproduction - systematically returns to K and prints the ID of the designated parents
+reproduction() {
+	K = sim.getValue("K");
+	for (i in seqLen(K))
+	{
+		firstParent = p2.sampleIndividuals(1);
+		secondParent = p2.sampleIndividuals(1, exclude=firstParent);
+		p2.addCrossed(firstParent, secondParent);
+		
+		//writeFile("nwf_all_patGeno_" + I + ".csv", paste(c(sim.generation,firstParent.pedigreeID,firstParent.countOfMutationsOfType(m1)), "\t"), append=T);
+		//writeFile("nwf_all_patGeno_" + I + ".csv", paste(c(sim.generation,secondParent.pedigreeID,secondParent.countOfMutationsOfType(m1)),"\t"), append=T);
+	}
+	self.active = 0;
+}
+
+58000 early() {
+	//sim.readFromPopulationFile("/home/users/cindy/data/finalGravel_1897530535422.trees");
+	sim.readFromPopulationFile("/home/users/cindy/data/Gravel/finalGravel_1600280212760.trees");
+	sim.setValue("K", p2.individualCount);
+}
+
+58000 late(){
+	mut = sim.mutations;
+	catn(mut);
+}
+
+// Non-overlapping generations
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	off = inds[inds.age < 1];
+	writeFile("nwf_mated_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T);
+	writeFile("nwf_mated_offspring_" + I + ".csv", paste(c(sim.generation,off.pedigreeID),"\t"), append=T);
+
+}
+
+// Reduce fitness of individuals without the allele
+58002:58021 early() {
+	inds = sim.subpopulations.individuals;
+	//inds[inds.countOfMutationsOfType(m1)<2].fitnessScaling = 0.5;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+
+// Carrying capacity per generation of bottleneck
+58002 early() { p2.fitnessScaling = T1/ sum(p2.individuals.fitnessScaling); }
+58003 early() { p2.fitnessScaling = T2/ sum(p2.individuals.fitnessScaling); }
+58004 early() { p2.fitnessScaling = T3/ sum(p2.individuals.fitnessScaling); }
+58005 early() { p2.fitnessScaling = T4/ sum(p2.individuals.fitnessScaling); }
+58006 early() { p2.fitnessScaling = T5/ sum(p2.individuals.fitnessScaling); }
+58007 early() { p2.fitnessScaling = T6/ sum(p2.individuals.fitnessScaling); }
+58008 early() { p2.fitnessScaling = T7/ sum(p2.individuals.fitnessScaling); }
+58009 early() { p2.fitnessScaling = T8/ sum(p2.individuals.fitnessScaling); }
+58010 early() { p2.fitnessScaling = T9/ sum(p2.individuals.fitnessScaling); }
+58011 early() { p2.fitnessScaling = T10/ sum(p2.individuals.fitnessScaling); }
+58012 early() { p2.fitnessScaling = T11/ sum(p2.individuals.fitnessScaling); }
+58013 early() { p2.fitnessScaling = T12/ sum(p2.individuals.fitnessScaling); }
+58014 early() { p2.fitnessScaling = T13/ sum(p2.individuals.fitnessScaling); }
+58015 early() { p2.fitnessScaling = T14/ sum(p2.individuals.fitnessScaling); }
+58016 early() { p2.fitnessScaling = T15/ sum(p2.individuals.fitnessScaling); }
+58017 early() { p2.fitnessScaling = T16/ sum(p2.individuals.fitnessScaling); }
+58018 early() { p2.fitnessScaling = T17/ sum(p2.individuals.fitnessScaling); }
+58019 early() { p2.fitnessScaling = T18/ sum(p2.individuals.fitnessScaling); }
+58020 early() { p2.fitnessScaling = T19/ sum(p2.individuals.fitnessScaling); }
+58021 early() { p2.fitnessScaling = T20/ sum(p2.individuals.fitnessScaling); }
+
+// Output per generation - prints out to file the final parents of each remaining offspring
+58000:58041 late() {
+	sim.treeSeqRememberIndividuals(p2.individuals);
+	freq = sim.mutationFrequencies(p2);
+	inds = sim.subpopulations.individuals;
+	off = inds[inds.age < 1];
+	patsize = size(unique(off.pedigreeParentIDs));
+	wt = size(inds[inds.countOfMutationsOfType(m1) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m1) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m1) == 2]);
+	catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2) + "\t" + wt + "\t" + het + "\t" + hom +  "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 2].index)) + "\t" + patsize);
+	writeFile("nwf_survivor_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T);
+	writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1,off.pedigreeID),"\t"), append=T);
+	writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1+"g",off.countOfMutationsOfType(m1)),"\t"), append=T);
+}
+
+// Tree output
+58041 late() {
+	//sim.treeSeqOutput("/home/users/cindy/data/nonWF_select_" + I + ".trees");
+	sim.treeSeqOutput("/home/users/cindy/data/toy_data/nonWF_neutral_" + I + ".trees");
+
+}

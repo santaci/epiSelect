@@ -1,0 +1,95 @@
+// WF model with selection and bottleneck in parallel
+
+initialize() {
+        initializeTreeSeq();
+        defineConstant("simID", getSeed());
+        if (exists("slimgui")) {
+                defineConstant("O", "WF_"+simID+".trees");              
+        }
+        initializeMutationType("m1", 0.0, "f", 0.0);
+        m1.convertToSubstitution = T;
+        initializeGenomicElementType("g1", m1, 1.0);
+        initializeGenomicElement(g1, 0, 51304565);
+        initializeMutationRate(0);
+        
+        //Read HapMap genetic map for chr22
+        lines = readFile("/home/users/cindy/genetic_map_GRCh37_chr22.txt");
+        rates = NULL;
+        ends = NULL;
+        for (line in lines)
+        {
+                components = strsplit(line, "\t");
+                if (components[0]=="Chromosome")
+                        next;
+                ends = c(ends, asInteger(components[1]));
+                rates = c(rates, asFloat(components[2]));
+        }
+        ends = c(ends[1:(size(ends)-1)] - 2, 51304565);
+        rates = rates * 1e-8;
+        initializeRecombinationRate(rates, ends);
+}
+
+// Open Gravel baseline simulation and add positive selection before bottleneck
+58000 late() {
+        sim.readFromPopulationFile("/home/users/cindy/data/finalGravel_1897530535422.trees");
+        sim.setValue("K", p2.individualCount);
+	mut = sim.mutations;
+	catn(mut);
+	catn("Generation\tNe\tFrequency\tWT\tHET\tHOM");
+}
+
+// Create bottleneck using Nes from nonWF simulation
+58001 late() {
+	sim.mutations.setSelectionCoeff(1.0);
+        p2.setSubpopulationSize(17728);
+}
+
+58002 late() {
+        p2.setSubpopulationSize(17595);
+}
+
+58003 late() {
+        p2.setSubpopulationSize(17789);
+}
+
+58004 late() {
+        p2.setSubpopulationSize(17985);
+}
+
+// Population size restored and selection turned off
+58005 late() {
+        sim.mutations.setSelectionCoeff(0.0);
+        p2.setSubpopulationSize(34039);
+}
+
+// Output per generation
+58001:58016 early() {
+inds = sim.subpopulations.individuals;
+catn(mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 2].index)));
+}
+
+58000:58016 late() {
+        sim.treeSeqRememberIndividuals(p2.individuals);
+        //catn("Generation: " + sim.generation + "\tN_e: " + p2.individualCount);
+        freq=sim.mutationFrequencies(p2);
+        inds = sim.subpopulations.individuals;
+        wt = size(inds[inds.countOfMutationsOfType(m1) == 0]);
+        het = size(inds[inds.countOfMutationsOfType(m1) == 1]);
+        hom = size(inds[inds.countOfMutationsOfType(m1) == 2]);
+        catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2) + "\t" + wt + "\t" + het + "\t" + hom);
+        
+        if (freq < 0.1 | freq > 0.9)
+        {
+                if (freq < 0.01)
+                        cat("Sweep mutation lost in gen. " + sim.generation + "\n");
+                else
+                        cat("Sweep mutation reached fixation.\n");
+                sim.simulationFinished();
+        }
+}
+
+
+// Tree-output
+58016 late() {
+        //sim.treeSeqOutput("/home/users/cindy/data/WF_"+simID+"_sametime.trees");
+}

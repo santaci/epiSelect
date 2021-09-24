@@ -1,0 +1,111 @@
+// nonWF selection-driven bottleneck after Gravel model with two chromosomes and several loci
+
+initialize() {
+	//setSeed(1694628549537);
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T);
+	initializeTreeSeq();
+	defineConstant("simID", getSeed());
+	if (exists("slimgui")) {
+		defineConstant("O", "nonWF_select_"+simID+".trees");
+		defineConstant("I", 1);
+		defineConstant("selected",13811692);
+	}
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,1.0));
+	initializeGenomicElement(g1, 0, 68937974);
+	initializeMutationRate(0);
+	
+	// Read combined HapMap for chr21 and chr22
+	
+	lines = readFile("/home/users/cindy/recombination_map.TRANSPOSED.combined4.txt");
+	ends = asInteger(strsplit(lines[0]));
+	rates = asFloat(strsplit(lines[1]));
+	initializeRecombinationRate(rates, ends);}
+
+
+// WF-like reproduction - systematically returns to K and prints the ID of the designated parents
+reproduction() {
+	K = sim.getValue("K");
+	for (i in seqLen(K))
+	{
+		firstParent = p2.sampleIndividuals(1);
+		secondParent = p2.sampleIndividuals(1, exclude=firstParent);
+		p2.addCrossed(firstParent, secondParent);
+		
+		//writeFile("nwf_all_patGeno_" + I + ".csv", paste(c(sim.generation,firstParent.pedigreeID,firstParent.countOfMutationsOfType(m1)), "\t"), append=T);
+		//writeFile("nwf_all_patGeno_" + I + ".csv", paste(c(sim.generation,secondParent.pedigreeID,secondParent.countOfMutationsOfType(m1)),"\t"), append=T);
+	}
+	self.active = 0;
+}
+
+58000 early() {
+	sim.readFromPopulationFile("/home/users/cindy/data/Gravel/finalGravel_2247793190995.trees");
+	sim.setValue("K", p2.individualCount);
+}
+
+58000 late(){
+	mut = sim.mutations;
+	catn(mut);
+}
+
+// Non-overlapping generations
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	off = inds[inds.age < 1];
+	writeFile("nwf_mated_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T);
+	writeFile("nwf_mated_offspring_" + I + ".csv", paste(c(sim.generation,off.pedigreeID),"\t"), append=T);
+
+}
+
+// Reduce fitness of individuals without the allele
+58002 early() {
+	inds = sim.subpopulations.individuals;
+	mut = sim.mutations;
+	target=mut[mut.position==selected];
+	inds[inds.countOfMutationsOfType(m2)<2].fitnessScaling=0.5;
+	//inds[inds.countOfMutationsOfType(m1)<2].fitnessScaling = 0.1;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+
+// No early individuals saved
+58002 early() {
+	sim.mutations.setSelectionCoeff(0.0);
+	sim.treeSeqRememberIndividuals(p2.individuals);
+	}
+
+
+// Output per generation - prints out to file the final parents of each remaining offspring
+58000:58021 late() {
+	mut = sim.mutations;
+	target=mut[mut.position==selected];
+	target.setMutationType(m2);
+	sim.treeSeqRememberIndividuals(p2.individuals);
+	freq = sim.mutationFrequencies(p2, target);
+	inds = sim.subpopulations.individuals;
+	off = inds[inds.age < 1];
+	off.tag=off.pedigreeID;
+	patsize = size(unique(off.pedigreeParentIDs));
+	
+	
+	wt = size(inds[inds.countOfMutationsOfType(m2) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m2) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m2) == 2]);
+	
+	catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2, target) + "\t" + wt + "\t" + het + "\t" + hom +  "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 2].index)) + "\t" + patsize);
+	writeFile("nwf_survivor_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T);
+	writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1,off.pedigreeID),"\t"), append=T);
+	writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1+"g",off.countOfMutationsOfType(m2)),"\t"), append=T);
+	writeFile("nwf_otherFreqs_" + I + ".csv", paste(c("Generation: "+sim.generation, sim.mutationFrequencies(p2,mut[mut!=target]) + " at "+sim.mutationsOfType(m1).position),"\n"), append=T);
+}
+
+// Tree output
+58021 late() {
+	sim.treeSeqOutput("/home/users/cindy/data/nonWF_select_" + I + "_gen1.trees");
+	//sim.treeSeqOutput("/home/users/cindy/data/toy_data/nonWF_select_" + I + ".trees");
+
+}

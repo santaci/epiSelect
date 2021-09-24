@@ -3,8 +3,10 @@ initialize() {
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
+	m1.mutationStackPolicy="f";
 	m1.convertToSubstitution=T;
 	initializeGenomicElement(g1, 0, 51304565);
+	//initializeGenomicElement(g1, 0, 99329961);
 	
 	//Read HapMap genetic map for chr22
 	lines = readFile("/home/users/cindy/genetic_map_GRCh37_chr22.txt");
@@ -21,12 +23,21 @@ initialize() {
 	ends = c(ends[1:(size(ends)-1)] - 2, 51304565);
 	rates = rates * 1e-8;
 	initializeRecombinationRate(rates, ends);
+	
+	//	// Read combined HapMap for chr21 and chr22
+	//	
+	//	lines = readFile("/home/users/cindy/recombination_map.TRANSPOSED.combined.txt");
+	//	ends = asInteger(strsplit(lines[0]));
+	//	rates = asFloat(strsplit(lines[1]));
+	//	initializeRecombinationRate(rates, ends);
 }
 
+late () {print(sim.generation);}
+
 // Create the ancestral African population
-1 { sim.addSubpop("p1", 7310); 
-// save this run's identifier, used to save and restore
-defineConstant("simID", getSeed());
+1 { sim.addSubpop("p1", 7310);
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
 }
 
 // Expand the African population to 14474
@@ -51,48 +62,31 @@ defineConstant("simID", getSeed());
 	p1.setMigrationRates(c(p2, p3), c(2.5e-5, 0.78e-5));
 	p2.setMigrationRates(c(p1, p3), c(2.5e-5, 3.11e-5));
 	p3.setMigrationRates(c(p1, p2), c(0.78e-5, 3.11e-5));
-//	sim.chromosome.setMutationRate(2.36e-10);
+	//	sim.chromosome.setMutationRate(2.36e-10);
 }
 
 55960 late() {
-// save the state of the simulation
-	sim.outputFull("/home/users/cindy/tmp/slim_" + simID + ".txt");
+	// save the state of the simulation
+	sim.treeSeqOutput("/home/users/cindy/tmp/slim_" + simID + ".trees");
 	
 	// introduce the sweep mutation
 	target = sample(p2.genomes, 1);
 	target.addNewDrawnMutation(m1, 2000000);
 }
 
-57999: late() {
-	mut = sim.mutationsOfType(m1);
-	
-	if (size(mut) == 1)
+55960:57999 late() {
+	if (size(sim.mutationsOfType(m1)) == 0)
 	{
-		if (sim.mutationFrequencies(NULL, mut) >= 0.1 & sim.mutationFrequencies(NULL, mut) < 0.3)
-		{
-			cat(simID + ": ESTABLISHED - KEEP MUTATION\n");
-			catn("Frequency: " + sim.mutationFrequencies(p2));
-			mut.setSelectionCoeff(0.0);
-			sim.deregisterScriptBlock(self);
-		}
-	}
-	else
-	{
-		cat(simID + ": LOST BEFORE ESTABLISHMENT - RESTARTING\n");
-		catn("Frequency: " + sim.mutationFrequencies(p2));
-		
-		// go back to generation 57080
-		sim.readFromPopulationFile("/home/users/cindy/tmp/slim_" + simID + ".txt");
+		//catn(getSeed() + ": LOST IMMEDIATELY - RESTARTING");
+		sim.readFromPopulationFile("/home/users/cindy/tmp/slim_" + simID + ".trees");
 		
 		// start a newly seeded run
 		setSeed(rdunif(1, 0, asInteger(2^62) - 1));
-		
 		// re-introduce the sweep mutation
 		target = sample(p2.genomes, 1);
 		target.addNewDrawnMutation(m1, 2000000);
 	}
 }
-
 
 // Set up exponential growth in Europe and East Asia
 // Where N(0) is the base subpopulation size and t = gen - 57080:
@@ -107,28 +101,70 @@ defineConstant("simID", getSeed());
 	p3.setSubpopulationSize(asInteger(p3_size));
 }
 
+57999 late() {
+	mut = sim.mutationsOfType(m1);
+	if (size(mut) == 1)
+	{
+		if (sim.mutationFrequencies(NULL, mut) >= 0.1 & sim.mutationFrequencies(NULL, mut) < 0.3)
+		{
+			catn(getSeed() + ": ESTABLISHED - KEEP MUTATION");
+			catn("Frequency: " + sim.mutationFrequencies(p2));
+			sim.treeSeqRememberIndividuals(p2.individuals);
+			
+			//mut.setSelectionCoeff(1.0);
+			//p1.setSubpopulationSize(2000);
+			sim.deregisterScriptBlock(self);
+		}
+		
+		else
+		{
+			catn(getSeed() +": UNFIT - RESTARTING\nFrequency: " + sim.mutationFrequencies(p2));
+			
+			// go back to generation 55960
+			sim.readFromPopulationFile("/home/users/cindy/tmp/slim_" + simID + ".trees");
+			
+			// start a newly seeded run
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+			
+			// re-introduce the sweep mutation
+			target = sample(p2.genomes, 1);
+			target.addNewDrawnMutation(m1, 2000000);
+		}
+	
+	}
+}
+
 // Set populations that are not of interest to zero before treeSeqOutput
 58000 {
-p1.setSubpopulationSize(0);
-p3.setSubpopulationSize(0);
+	p1.setSubpopulationSize(0);
+	p3.setSubpopulationSize(0);
 }
 
 // Generation 58000 is the present.  Output and terminate.
 58000 late() {
-	sim.treeSeqOutput("/home/users/cindy/data/Gravel/finalGravel_" + simID + ".trees");	
-
-//NO LONGER USING
-// Remove migration matrix tables
-//	p1.setMigrationRates(c(p2, p3), c(0,0));
-//	p2.setMigrationRates(c(p1, p3), c(0,0));
-//	p3.setMigrationRates(c(p1, p2), c(0,0));
-//	
-
-// THIS CAUSES ISSUES IN MSPRIME FOR DOWNSTREAM ANALYSIS
-// Target here are all mutations we want to delete
-//	muts = sim.mutationsOfType(m1);
-//	target=sample(sim.mutations,size(muts)-50);
-//	sim.subpopulations.genomes.removeMutations(target);
+	sim.treeSeqOutput("/home/users/cindy/data/Gravel/finalGravel_" + simID + ".trees");
+	freq = sim.mutationFrequencies(p2);
+	inds = sim.subpopulations.individuals;
+	patsize = size(unique(inds.pedigreeParentIDs));
+	wt = size(inds[inds.countOfMutationsOfType(m1) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m1) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m1) == 2]);
+	writeFile("/home/users/cindy/data/Gravel/gravelAF.txt", paste(c(simID + sim.generation + p2.individualCount + sim.mutationFrequencies(p2) + wt + het + hom + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 0].index)) + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 1].index)) +  mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 2].index)) +  patsize),"\t"), append=T);
+	
+	
+	
+	//NO LONGER USING
+	// Remove migration matrix tables
+	//	p1.setMigrationRates(c(p2, p3), c(0,0));
+	//	p2.setMigrationRates(c(p1, p3), c(0,0));
+	//	p3.setMigrationRates(c(p1, p2), c(0,0));
+	//	
+	
+	// THIS CAUSES ISSUES IN MSPRIME FOR DOWNSTREAM ANALYSIS
+	// Target here are all mutations we want to delete
+	//	muts = sim.mutationsOfType(m1);
+	//	target=sample(sim.mutations,size(muts)-50);
+	//	sim.subpopulations.genomes.removeMutations(target);
 	
 	//p1.outputSample(216); // YRI phase 3 sample of size 108
 	//p2.outputSample(198); // CEU phase 3 sample of size 99

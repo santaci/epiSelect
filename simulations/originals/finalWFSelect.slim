@@ -51,6 +51,12 @@ initialize() {
 }
 
 // Output per generation
+58001:58016 early() {
+	inds = sim.subpopulations.individuals;
+	catn(mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m1) == 2].index)));
+	for (j in seqLen(size(inds)))
+		writeFile("all_patGeno_" + I + ".csv", paste(c(sim.generation,inds.pedigreeID[j],inds.countOfMutationsOfType(m1)[j]),"\t"), append=T);
+
 58000:58016 late() {
         sim.treeSeqRememberIndividuals(p2.individuals);
         //catn("Generation: " + sim.generation + "\tN_e: " + p2.individualCount);
@@ -60,6 +66,8 @@ initialize() {
         het = size(inds[inds.countOfMutationsOfType(m1) == 1]);
         hom = size(inds[inds.countOfMutationsOfType(m1) == 2]);
         catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2) + "\t" + wt + "\t" + het + "\t" + hom);
+	for (j in seqLen(patsize))
+		writeFile("unique_parents_" + I + ".csv", paste(c(sim.generation,unique(inds.pedigreeParentIDs)[j]),"\t"), append=T);
         
         if (freq < 0.1 | freq > 0.9)
         {
