@@ -1,0 +1,178 @@
+initialize() {
+	//initializeSLiMOptions(keepPedigrees=T);
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	m1.mutationStackPolicy="f";
+	m1.convertToSubstitution=T;
+	initializeGenomicElement(g1, 0, 68937974);
+	rates = c(1e-8, 0.5, 1e-8);
+	ends = c(33759514, 33759515, 68937974);
+	initializeRecombinationRate(rates, ends);
+}
+
+
+// Create the ancestral African population
+1 { sim.addSubpop("p1", 80000);
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+	//sim.treeSeqOutput("demeBuff_" + simID + "_1.trees");
+}
+
+17995 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_17995.trees");
+}
+
+// Decrease the Ancestral population to 35000
+// This occurs 148000 years (5920) generations ago
+18000 { p1.setSubpopulationSize(35000);
+}
+
+18001 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_18001.trees");
+}
+
+20000 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_20000.trees");
+}
+
+28000 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_28000.trees");
+}
+
+
+// Split KNP (p2) from Amboeseli (p1) (and set up migration between them?)
+// This occurs 48000 years (6400 generations) ago
+33600 {
+	sim.addSubpopSplit("p2", 30000, p1);
+	p1.setMigrationRates(c(p2), c(0));
+	p2.setMigrationRates(c(p1), c(0));
+}
+
+33590 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_33590.trees");
+}
+
+23600 late() {
+	// save the state of the simulation
+	sim.treeSeqOutput("/home/users/cindy/tmp/demeBuff_" + simID + ".trees");
+	
+	// introduce the sweep mutation
+	loci=rdunif(1000000,min=1,max=68937974);
+	for (locus in loci) {
+		target = sample(p1.genomes, 1);
+		target.addNewDrawnMutation(m1, locus);
+	}
+
+}
+
+33601 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_33601.trees");
+}
+
+// Moved up the population increase
+36000 {p1.setSubpopulationSize(37000);
+	p2.setSubpopulationSize(54000);
+}
+
+// Linear Decay
+37333:39999 {
+	p2_size = p2.individualCount;
+	p2.setSubpopulationSize(asInteger(round(p2_size - (38000/2667))));
+	//catn(sim.generation + "\t" + p2.individualCount);
+}
+
+38995 {
+	//sim.treeSeqOutput("demeBuff_" + simID + "_38995.trees");
+}
+
+40000 {
+	p2.setSubpopulationSize(16000);
+	catn(sim.generation + "\t" + p2.individualCount);
+}
+
+23600:39000 late() {
+	if (size(sim.mutationsOfType(m1)) == 0)
+	{
+		catn(getSeed() + ": ALL LOST - RESTARTING");
+		sim.readFromPopulationFile("/home/users/cindy/tmp/demeBuff_" + simID + ".trees");
+		
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+		
+		// re-introduce the sweep mutation
+		loci=rdunif(1000000,min=1,max=68937974);
+		
+		for (locus in loci) {
+			target = sample(p2.genomes, 1);
+			target.addNewDrawnMutation(m1, locus);
+		}
+	
+	}
+}
+
+// Set populations that are not of interest to zero before treeSeqOutput
+40000 {
+	p1.setSubpopulationSize(0);
+}
+
+
+40000 late() {
+	
+	mut = sim.mutationsOfType(m1);
+	if (size(mut) > 1)
+	{
+		
+		freqs=sim.mutationFrequencies(p2);
+		//if (any(freqs >= 0.2 & freqs < 0.205) & size(freqs[freqs >= 0.2 & freqs < 0.205]) >= 1) 
+		if (any(freqs >= 0.2 & freqs < 0.205) & size(freqs[freqs >= 0.3 & freqs < 0.305]) >= 1) {
+			catn("0.2 AF Total: " + size(freqs[freqs >= 0.2 & freqs < 0.205]));
+			catn("0.3 AF Total: " + size(freqs[freqs >= 0.3 & freqs < 0.305]));
+			//catn("AF greater than 33759515: " + size(freqs[freqs >= 0.2 & freqs < 0.205 & sim.mutationsOfType(m1).position > 33759515]));
+			//catn("AF less than 33759515: " + size(freqs[freqs >= 0.2 & freqs < 0.205 & sim.mutationsOfType(m1).position < 33759515]));
+			catn(getSeed() + ": ESTABLISHED - KEEP MUTATIONS");
+			catn("Frequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+			sim.treeSeqOutput("demeBuff_" + simID + ".trees");
+			sim.deregisterScriptBlock(self);
+		}
+		else {
+			catn("All is lost.\n");
+			catn("Actual 0.2 AF size: " + size(freqs[freqs >= 0.2 & freqs < 0.205]));
+			catn("Actual 0.3 AF size: " + size(freqs[freqs >= 0.3 & freqs < 0.305]));
+			print(getSeed() +": RESTARTING\nFrequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+			// go back to generation 23600
+			sim.readFromPopulationFile("/home/users/cindy/tmp/demeBuff_" + simID + ".trees");
+			
+			// start a newly seeded run
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+			
+			// re-introduce the sweep mutation
+			loci=rdunif(1000000,min=1,max=68937974);
+			for (locus in loci) {
+				target = sample(p1.genomes, 1);
+				target.addNewDrawnMutation(m1, locus);
+			}
+		
+		}
+	}
+	
+	else
+	{
+		print(getSeed() +": UNFIT - RESTARTING\nFrequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+		
+		// go back to generation 23600
+		sim.readFromPopulationFile("/home/users/cindy/tmp/demeBuff_" + simID + ".trees");
+		
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+		
+		// re-introduce the sweep mutation
+		loci=rdunif(1000000,min=1,max=68937974);
+		for (locus in loci) {
+			target = sample(p1.genomes, 1);
+			target.addNewDrawnMutation(m1, locus);
+		}
+	}
+
+}

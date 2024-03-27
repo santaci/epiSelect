@@ -1,0 +1,77 @@
+import os
+import yaml
+import subprocess
+
+SLIM="slim"
+DEADGEN="/home/lnd775/data/plague/scripts/plague_episelect.py"
+SELSCAN="selscan"
+SELNORM="norm"
+#OUTMAIN = config["OUTMAIN"]
+OUTMAIN="/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/results/1gen/VAA1/"
+
+def num_sims():
+    sims = config["sim"]
+    sim = list(range(1,sims+1,1))
+    sim = [str(x) for x in sim]
+    return sim
+
+def num_resamp():
+    resamps = config["resamp"]
+    resamp = list(range(1,resamps+1,1))
+    resamp = [str(x) for x in resamp]
+    return resamp
+
+sim=num_sims()
+resamp=num_resamp()
+
+rule run_rehh:
+     input:
+        sfs = os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}.png")
+     output:
+         out = os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}", "{gen1}_{gen2}", "nonWF_{n}_{gen2}.ihs.out.100bins.norm"),
+     params:
+         chrom = config["chrom"],
+         gens = [config["gen1"],config["gen2"]],
+     threads: 100
+     shell:
+         """
+         Rscript scripts/rehh_ihs_parallel.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {wildcards.gen2} {threads}
+
+         echo {output}
+         """
+
+rule run_ihs_analysis:
+  input:
+      norm = os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{gen2}.ihs.out.100bins.norm"),
+      varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+  output:
+      out = os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}","{gen1}_{gen2}", "df_{gen2}.ihs_after.png"),
+  params:
+      midchrom = config["midchrom"],
+      chrom = config["chrom"],
+      bin = 100,
+      gens = [config["gen1"],config["gen2"]],
+  shell:
+      """
+      selected=$(cat {input.varpos});
+      if [[ $selected -ge {params.midchrom} ]]; then
+          selected=$(echo $selected-{params.midchrom} | bc -l)
+          selected="chr{params.chrom[1]}_"$selected
+      else
+          selected="chr{params.chrom[0]}_"$selected
+      fi
+      echo $selected;
+
+
+      Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} nonWF_{wildcards.n}_{wildcards.gen2}.ihs.out.100bins.norm ihs_after $selected
+
+      """
+      
+rule all:
+    input:
+        #expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}", "nonWF_{n}_{gen1}_ihs_chr{chrom}_{stat}.vcf.gz"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], resamp=num_resamp(), gen1=config["gen1"], gen2=config["gen2"], gens=[config["gen1"],config["gen2"]], chrom=config["chrom"],stat=["d","a"]),
+        #expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        #expand(rules.run_selscan.output.norm,  model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=sim, n=config["n"], resamp=resamp, gen1=config["gen1"], gen2=config["gen2"], gens=[config["gen1"],config["gen2"]], chrom=config["chrom"],stat=["d","a"]),
+        expand(rules.run_rehh.output,  model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], resamp=num_resamp(), gen1=config["gen1"], gen2=config["gen2"], gens=[config["gen1"],config["gen2"]], chrom=config["chrom"],stat=["d","a"]),
+        #expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        expand(rules.run_ihs_analysis.output,  model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=sim, n=config["n"], resamp=resamp, gen1=config["gen1"], gen2=config["gen2"], gens=[config["gen1"],config["gen2"]], chrom=config["chrom"],stat=["d","a"])

@@ -1,0 +1,15 @@
+model: "add"
+recovery: "grad"
+s: 0.1
+f: 0.3
+sim: 10
+n: 400
+resamp: 100
+deme: 1
+gen1: 58796
+gen2: 58810
+midchrom: 33759515
+chrom: [21, 22]
+OUTMAIN: "/home/lnd775/data/plague/results/"
+ihs_best: "results/plots/40001_40017/rec_grad_s0.1_f0.3_sim_n100_ihsBest.txt"
+dead:

@@ -1,0 +1,15 @@
+model: "rec"
+recovery: "grad"
+s: 0.1
+f: 0.1
+sim: 10
+n: 100
+resamp: 100
+deme: 2025765288236
+gen1: 40001
+gen2: 40017
+midchrom: 33759515
+chrom: [21, 22]
+OUTMAIN: "/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/results/"
+ihs_best: "results/plots/40001_40017/rec_grad_s0.1_f0.2_sim_n100_ihsBest.txt"
+dead:

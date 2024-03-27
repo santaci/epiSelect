@@ -1,0 +1,152 @@
+// nonWF selection-driven bottleneck after Buffalo demeographic model with two chromosomes and several loci
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T);
+	initializeTreeSeq();
+	defineConstant("simID", getSeed());
+	if (exists("slimgui")) {
+		defineConstant("O", "nonWF_select_"+simID+".trees");
+		defineConstant("deme",2368230942886);
+		defineConstant("I", 1);
+		defineConstant("selected",37124637);
+		defineConstant("directory","/steveData/cindy/buffalo/");
+		defineConstant("pres", 0.1);
+		defineConstant("fithom", 1);
+	}
+	
+	setwd(directory);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,1.0));
+	initializeGenomicElement(g1, 0, 68937974);
+	rates = c(1e-8, 0.5, 1e-8);
+	ends = c(33759514, 33759515, 68937974);
+	initializeMutationRate(0);
+	initializeRecombinationRate(rates, ends);
+}
+
+
+// WF-like reproduction - systematically returns to K and prints the ID of the designated parents
+reproduction() {
+	K = sim.getValue("K");
+	for (i in seqLen(K))
+	{
+		firstParent = p2.sampleIndividuals(1);
+		secondParent = p2.sampleIndividuals(1, exclude=firstParent);
+		p2.addCrossed(firstParent, secondParent);
+	}
+	self.active = 0;
+}
+
+40000 early() {
+	
+	sim.readFromPopulationFile("/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/demographies/demeBuff_"+deme+".trees");
+	
+	sim.setValue("K", p2.individualCount);
+}
+
+40000 late(){
+	mut = sim.mutations;
+	catn(mut);
+}
+
+// Non-overlapping generations
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	off = inds[inds.age < 1];
+	//writeFile("nwf_mated_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T,);
+	//writeFile("nwf_mated_offspring_" + I + ".csv", paste(c(sim.generation,off.pedigreeID),"\t"), append=T);
+
+}
+
+// Reduce fitness of individuals without the allele
+// ADDITIVE GENETIC MODEL
+40002 early() {
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	inds = inds[inds.age < 1];
+	mut = sim.mutations;
+	target=mut[mut.position==selected];
+	wt = size(inds[inds.countOfMutationsOfType(m2) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m2) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m2) == 2]);
+	prop90 = size(inds)*pres;
+	sim.setValue("P", prop90);
+	prop = prop90;
+	fithet = (prop-(fithom*(hom-wt)))/((2*wt)+het);
+	fitwt = (2*(fithet))-fithom;
+	if (fitwt >= 0){
+		inds[inds.countOfMutationsOfType(m2) == 0].fitnessScaling = fitwt;
+		inds[inds.countOfMutationsOfType(m2) == 1].fitnessScaling = fithet;
+		inds[inds.countOfMutationsOfType(m2) == 2].fitnessScaling = fithom;
+		writeFile("seed.txt", paste(getSeed(),"\t"), append=F);
+	}
+	else {
+		// go back to start
+		sim.readFromPopulationFile("/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/demographies/demeBuff_"+deme+".trees");
+		
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^62) - 1));}
+		catn(getSeed());
+}
+
+// Early individuals saved
+40002 early() {
+	sim.mutations.setSelectionCoeff(0.0);
+	sim.treeSeqRememberIndividuals(p2.individuals);
+}
+
+40002 late() {
+	sim.setValue("B", p2.individualCount);
+	B = sim.getValue("B");
+	sim.setValue("K", p2.individualCount);
+	P = sim.getValue("P");
+}
+
+40002:40016 late() {
+	t = sim.generation - 40001;
+	K = sim.getValue("K");
+	B = sim.getValue("B");
+	exp_rate = log(25.5625)/15;
+	//print(B);
+	p2_size = asInteger(round(B * exp(exp_rate * t)));
+	//print(p2_size);
+	sim.setValue("K", p2_size);
+
+}
+
+
+// Output per generation - prints out to file the final parents of each remaining offspring
+40000:40017 late() {
+	mut = sim.mutations;
+	target=mut[mut.position==selected];
+	target.setMutationType(m2);
+	sim.treeSeqRememberIndividuals(p2.individuals);
+	freq = sim.mutationFrequencies(p2, target);
+	inds = sim.subpopulations.individuals;
+	off = inds[inds.age < 1];
+	off.tag=off.pedigreeID;
+	patsize = size(unique(off.pedigreeParentIDs));
+	wt = size(inds[inds.countOfMutationsOfType(m2) == 0]);
+	het = size(inds[inds.countOfMutationsOfType(m2) == 1]);
+	hom = size(inds[inds.countOfMutationsOfType(m2) == 2]);
+	K = sim.getValue("K");
+	//print(K);
+	
+	//catn(sim.generation + "\t" + p2.individualCount + "\t" + sim.mutationFrequencies(p2, target) + "\t" + wt + "\t" + het + "\t" + hom +  "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 0].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 1].index)) + "\t" + mean(p2.cachedFitness(inds[inds.countOfMutationsOfType(m2) == 2].index)) + "\t" + patsize);
+	//writeFile("nwf_survivor_parents_" + I + ".csv", paste(c(sim.generation,off.pedigreeParentIDs),"\t"), append=T);
+	//writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1,off.pedigreeID),"\t"), append=T);
+	//writeFile("nwf_putparents_" + I + ".csv", paste(c(sim.generation+1+"g",off.countOfMutationsOfType(m2)),"\t"), append=T);
+	//writeFile("nwf_otherFreqs_" + I + ".csv", paste(c("Generation: "+sim.generation, sim.mutationFrequencies(p2,mut[mut!=target]) + " at "+sim.mutationsOfType(m1).position),"\n"), append=T);
+}
+
+// Tree output
+40017 late() {
+	//sim.treeSeqOutput("add_grad_" + I + ".trees");
+
+}

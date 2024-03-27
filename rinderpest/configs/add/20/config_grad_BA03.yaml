@@ -1,0 +1,14 @@
+model: "add"
+recovery: "grad"
+s: 0.1
+f: 0.3
+sim: 10
+n: 20
+resamp: 100
+deme: 2025765288236
+gen1: 40001
+gen2: 40017
+midchrom: 33759515
+chrom: [21, 22]
+OUTMAIN: "/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/results/"
+dead:

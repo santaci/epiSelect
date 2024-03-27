@@ -1,0 +1,157 @@
+import os
+import yaml
+import subprocess
+
+SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
+DEADGEN="/home/lnd775/data/plague/scripts/plague_episelect_3.py"
+GETTOP="/home/lnd775/data/plague/scripts/get_top_ten.R"
+#OUTMAIN = config["OUTMAIN"]
+OUTMAIN = "/home/lnd775/data/plague/results/sweden/VAA08/"
+
+def num_sims():
+    sims = config["sim"]
+    sim = list(range(1,sims+1,1))
+    sim = [str(x) for x in sim]
+    return sim
+
+def num_resamp():
+    resamps = config["resamp"]
+    resamp = list(range(1,resamps+1,1))
+    resamp = [str(x) for x in resamp]
+    return resamp
+
+
+sim=num_sims()
+resamp=num_resamp()
+
+#rule get_deme:
+#    input:
+#        "demographies/plagueGravel_{sim}.txt"
+#    output:
+#        deme = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","deme.txt"),
+#    shell:
+#        """
+#        head -n 2 {input} | tail -n 1  > {output.deme}
+#        """
+
+#rule run_slim_epidemic:
+#    input:
+#        nonwf = "scripts/sweden_{model}_{recovery}.slim",
+#        deme = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","deme.txt"),
+#    output:
+#        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_s{s}_f{f}_sim{sim}.out"),
+#        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
+#        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt"),
+#    params:
+#    	fithom = 0.8,
+#        
+#    log:
+#        os.path.join(OUTMAIN,"logs","{model}_{recovery}_s{s}_f{f}_sim{sim}.out"),
+#    shell:
+#        """
+#        deme=$(cat {input.deme});
+#        {SLIM} -s {wildcards.sim} -d deme=$deme -d pres={wildcards.s} -d fithom={params.fithom} -d selFreq={wildcards.f} -d "directory='{OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}'" -d I={wildcards.sim} {input.nonwf} > {output[0]}
+#        """
+# The n parameter (sample size) needs to be changed if different sample sizes
+#rule recap:
+#    input:
+#        tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
+#        varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+#    output:
+#        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+#    params:
+#        dead = config["dead"],
+#        n = config["n"],
+#        resamp = config["resamp"],
+#        gen1 = config["gen1"],
+#        gen2 = config["gen2"],
+#    run:
+#        shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/ && python3 {DEADGEN} --nosel --seed {params.resamp} --tree {input.tree} --muTree {output} --select ${{selected}} --bottle 58799 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {params.n} {params.n} --generations {params.gen1} {params.gen2} --demegen 58796 && rm {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nonWF_{params.n}_{params.n}_{params.gen1}_{params.gen2}_FST.out.gz")
+
+if config["dead"]:
+    rule run_episelect:
+        input:
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+        params:
+            dead = config["dead"],
+        run:
+            shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --muTree {input.tree} --tree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}.trees --select ${{selected}} --bottle 58799 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} {wildcards.n2} --vcf --gwas --plots --generations {wildcards.gen1} {wildcards.gen2} --demegen 58796")
+else:
+    rule run_episelect:
+        input:
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz")
+        params:
+            dead = config["dead"],
+        run:
+            shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --muTree {input.tree} --tree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}.trees --select ${{selected}} --bottle 58799 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} {wildcards.n2} --plots --generations {wildcards.gen1} {wildcards.gen2} --vcf --ihs --demegen 58796")
+
+if config["dead"]:
+    rule run_analyses:
+        input:
+            gwas = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_gwas_{gen1}_{gen2}.png"),
+        params:
+            midchrom = config["midchrom"],
+            chrom = config["chrom"],
+            bin = 100,
+        shell:
+            """
+            selected=$(cat {input.varpos});
+            if [[ $selected -ge {params.midchrom} ]]; then
+                selected=$(echo $selected-{params.midchrom} | bc -l)
+                selected="chr{params.chrom[1]}_"$selected
+            else
+                selected="chr{params.chrom[0]}_"$selected
+            fi
+            echo $selected;
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.gwas} gwas $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            """
+else:
+    rule run_analyses:
+        input:
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_jsfs_{gen1}_{gen2}.png"),
+        params:
+            midchrom = config["midchrom"],
+            chrom = config["chrom"],
+            bin = 100,
+        shell:
+            """
+            selected=$(cat {input.varpos});
+            if [[ $selected -ge {params.midchrom} ]]; then
+                selected=$(echo $selected-{params.midchrom} | bc -l)
+                selected="chr{params.chrom[1]}_"$selected
+            else
+                selected="chr{params.chrom[0]}_"$selected
+            fi
+            echo $selected;
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            """
+# The n parameters (n, n2) needs to be changed if different sample sizes. Assume list e.g. [20,46]
+rule all:
+    input:
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"],n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])
