@@ -1,6 +1,6 @@
 model: "rec"
 recovery: "grad"
-s: 0.1
+v: 1.0
 f: 0.3
 sim: 10
 n: 100
@@ -10,5 +10,5 @@ gen1: 40002
 gen2: 40002
 midchrom: 33759515
 chrom: [21, 22]
-OUTMAIN: "/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/results/"
+OUTMAIN: "output"
 dead: 40002

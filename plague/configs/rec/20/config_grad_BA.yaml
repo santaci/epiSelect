@@ -1,14 +1,14 @@
 model: "rec"
 recovery: "grad"
-s: 0.1
+v: 1.0
 f: 0.2
 sim: 10
 n: 20
 resamp: 100
 deme: 1
 gen1: 58796
-gen2: 58810
+gen2: 58800
 midchrom: 33759515
 chrom: [21, 22]
-OUTMAIN: "/home/lnd775/data/plague/results/"
+OUTMAIN: "output"
 dead:

@@ -13,7 +13,7 @@ workd<-args[1]
 the_top<-args[2]
 
 if(length(args) < 1) {
-  stop("Usage: calculate_power.R <path to candidate tables> [# of top candidates. Default = 3].")
+  stop("Usage: Rscript calculate_power.R <path to candidate tables> [# of top candidates. Default = 3].")
 }
 
 library(ggplot2)

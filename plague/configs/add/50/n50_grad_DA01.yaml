@@ -1,6 +1,6 @@
 model: "add"
 recovery: "grad"
-s: 0.1
+v: 1.0
 f: 0.1
 sim: 10
 n: 50
@@ -10,5 +10,5 @@ gen1: 58799
 gen2: 58799
 midchrom: 33759515
 chrom: [21, 22]
-OUTMAIN: "/home/lnd775/data/plague/results/"
+OUTMAIN: "output"
 dead: 58799

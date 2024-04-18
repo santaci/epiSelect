@@ -3,16 +3,13 @@
 cat("\nepiSelect:\nGet Top Candidates\n\n")
 
 .libPaths(c("/home/lnd775/R/x86_64-pc-linux-gnu-library/4.2.2/",.libPaths()))
-library(utils)
-library(ggplot2)
-library(scales)
-library(tidyr)
-library(lattice)
-library(latticeExtra)
-library(ggpointdensity)
-options(warn=-1)
+
+library(this.path)
+options(warn=-1, keep.source=T)
 args = commandArgs(trailingOnly=TRUE)
-script.dir=getSrcDirectory(function(x) {x})
+
+# Get source file for Manhattan plots
+script.dir=this.dir()
 source(paste0(script.dir,"/src/ManhattanQQ.R"))
 
 # Path of working directory
@@ -24,7 +21,7 @@ j <-args[2]
 # Can choose from fst, gwas, ihs_before, ihs_after, nsl
 analysis <- args[3]
 
-# Known elected variant in simulations 
+# Known selected variant in simulations 
 selected<- args[4]
 
 # Generations being compared
@@ -33,10 +30,22 @@ gen2<-args[6]
 
 thetop<-args[7]
 
+if(length(args) < 1) {
+  stop("Usage: Rscript get_top.R <path to scenario wd> <relevant file for analysis> <analysis> <selected_variant> <gen1> <gen2> [# of top candidates. Default = 10].\n Analysis can be: fst, gwas, ihs_before, ihs_after, nsl" )
+}
+
 if (missing(thetop) | is.null(thetop) | is.na(thetop)) {
   cat("You didn't provide a top number of candidates. Using top 10 as default.")
   thetop=c(10)
 }
+
+library(utils)
+library(ggplot2)
+library(scales)
+library(tidyr)
+library(lattice)
+library(latticeExtra)
+library(ggpointdensity)
 
 # Set the working directory to the path specified in i
 setwd(paste0(i))
