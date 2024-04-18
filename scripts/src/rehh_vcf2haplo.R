@@ -1,30 +1,22 @@
 .libPaths(c("/home/lnd775/R/x86_64-pc-linux-gnu-library/4.2.2/",.libPaths()))
 library(utils)
-library(ggplot2)
-library(scales)
 library(tidyr)
-library(lattice)
-library(latticeExtra)
-library(patchwork)
 library(gtools)
-library(ggsci)
-library(kableExtra)
-library(ggpubr)
-library(vcfppR)
+#library(vcfppR)
 library(rehh)
 
 
 #test vcfppR
-start_time <- Sys.time()
-examp_hh<-vcf2haplohh(vcffile,min_maf=0.05, chr.name = "chr21", polarize_vcf = FALSE, vcf_reader = 'vcfppR')
-end_time <- Sys.time()
-end_time - start_time
+#start_time <- Sys.time()
+#examp_hh<-vcf2haplohh(vcffile,min_maf=0.05, chr.name = "chr21", polarize_vcf = FALSE, vcf_reader = 'vcfppR')
+#end_time <- Sys.time()
+#end_time - start_time
 
 #test vcfR
-start_time <- Sys.time()
-examp_hh_R<-data2haplohh(vcffile,min_maf=0.05,chr.name = "chr21", polarize_vcf = FALSE, vcf_reader = 'vcfR')
-end_time <- Sys.time()
-end_time - start_time
+#start_time <- Sys.time()
+#examp_hh_R<-data2haplohh(vcffile,min_maf=0.05,chr.name = "chr21", polarize_vcf = FALSE, vcf_reader = 'vcfR')
+#end_time <- Sys.time()
+#end_time - start_time
 
 # Adjusted function using vcfppR
 # Some assumptions made: no multiallelics and diploid samples only. This is mainly for the "ind_ploidy" function.

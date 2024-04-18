@@ -18,14 +18,14 @@ def parse_args(argv):
     parser.add_argument(
         "--tree",
         type=str,
-        dest='file_name',
+        dest='tree',
         help="Path to the tree file without mutations.",
     )
 
     parser.add_argument(
         "--muTree",
         type=str,
-        dest='file_mut',
+        dest='muTree',
         help="Path to the mutated and recapitated tree file."
     )
 
@@ -33,14 +33,14 @@ def parse_args(argv):
         "--bottle",
         type=int,
         default=58002,
-        dest='bottle_gen',
+        dest='bottle',
         help="SLiM generation(s) of the bottleneck."
     )
 
     parser.add_argument(
         "--select",
         type=int,
-        dest='selected',
+        dest='select',
         help="Site of selected variant",
         default=13811692
     )
@@ -50,7 +50,7 @@ def parse_args(argv):
         type=int,
         nargs=2,
         default=[58002, 58012],
-        dest='compare_gen',
+        dest='generations',
         help="Generations to be compared. (e.g. 58002 58012)."
     )
     parser.add_argument(
@@ -58,7 +58,7 @@ def parse_args(argv):
         type=int,
         nargs='+',
         default=[21, 22],
-        dest='chromo',
+        dest='chromosomes',
         help="Chromosomes simulated in SLiM. (e.g. 21 22)."
     )
     parser.add_argument(
@@ -71,7 +71,7 @@ def parse_args(argv):
         "--mixCem",
         type=float,
         default=None,
-        dest='mix_cem',
+        dest='mixCem',
         help="Proportion of diseased dead in cemetery mixed with unknown survivors (e.g. 0.5)."
     )
 
@@ -110,7 +110,13 @@ def parse_args(argv):
     parser.add_argument(
         "--pmap",
         action='store_true',
-        help="Does not create genetic map for iHS."
+        help="Does not create genetic map for iHS. Uses physical positions."
+    )
+
+    parser.add_argument(
+        "--recmaps",
+        type=str,
+        help="Provide the directory where recombination maps per chromosome can be found. Files must be named as 'slim_chr#_recode.map'."
     )
 
     parser.add_argument(
@@ -149,7 +155,7 @@ def parse_args(argv):
         "--demegen",
         type=int,
         default=58000,
-        dest='deme_gen',
+        dest='demegen',
         help="Last SLiM generation of demographic history."
     )
 
@@ -173,7 +179,7 @@ def parse_args(argv):
         "--ne",
         type=int,
         default=7310,
-        dest='eff_pop',
+        dest='ne',
         help="Ancestral effective population size."
     )
 
@@ -211,7 +217,7 @@ def parse_args(argv):
         afsamp = int(args.sampling[0])
 
 
-    with open("nonWF_"+str(args.compare_gen[0])+"_"+str(args.compare_gen[1])+ "_n" + str(bfsamp) +"_n" + str(afsamp) + "_r" + str(args.seed) + ".args", "w") as f:
+    with open("nonWF_"+str(args.generations[0])+"_"+str(args.generations[1])+ "_n" + str(bfsamp) +"_n" + str(afsamp) + "_r" + str(args.seed) + ".args", "w") as f:
             f.write("epiSelect v.1.0\n")
             f.write("Time: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + "\n")
             f.write("Directory: " + str(os.getcwd()) + "\n")
@@ -323,7 +329,6 @@ def get_bottle_inds(target, num_samples, status, alt_samples):
     other_gen_inds = np.asarray([mutated.individual(p).nodes for p in other_ids]).flatten().tolist()
     return bottle_gen_inds, bottle_ids, other_gen_inds, other_ids
 
-
 def merge_gen_gt(before, before_inds, after, after_inds):
     # Obtain simplified tree for samples (across generations) that will be compared
     merged = mutated.simplify(samples = before + after)
@@ -360,25 +365,6 @@ def get_LD_at_site(genotypes, site_index):
     norm[idx] = (genotypes[idx] - genotypes[idx].mean(1, keepdims=True)) / genotypes[idx].std(1, ddof=1, keepdims=True)
     r2 = ((np.dot(norm[site_index], norm.T) / (norm.shape[1] - 1)) ** 2)
     return (r2)
-
-
-def pop_freq_traj(file):
-    f = file.readlines()
-    f = f[19:]
-    while ('\n' in f):
-        f.remove('\n')
-    generations = []
-    frequencies = []
-    popsizes = []
-    for line in f:
-        line = line.split('\n')[0]
-        generations.append(line.split('\t')[0])
-        popsizes.append(line.split('\t')[1])
-        frequencies.append(line.split('\t')[2])
-    generations = np.array(generations, dtype=int)
-    frequencies = np.array(frequencies, dtype=float)
-    popsizes = np.array(popsizes, dtype=int)
-    return (generations, frequencies, popsizes)
 
 def jonas(oldG):
     m, n = oldG.shape
@@ -420,16 +406,16 @@ def main(argv):
 
     # Saving command-line arguments
     np.random.seed(args.seed)
-    file_name = args.file_name
-    file_mut = args.file_mut
-    bottle_gen = int(args.bottle_gen)
-    selected = args.selected
-    before_gen = args.compare_gen[0]
-    after_gen = args.compare_gen[1]
-    chromo = args.chromo
+    file_name = args.tree
+    file_mut = args.muTree
+    bottle_gen = int(args.bottle)
+    selected = args.select
+    before_gen = args.generations[0]
+    after_gen = args.generations[1]
+    chromo = args.chromosomes
     midchrom = args.midchrom
     dead = args.dead
-    mix_cem = args.mix_cem
+    mix_cem = args.mixCem
     sampling = args.sampling
     vcf = args.vcf
     nosel = args.nosel
@@ -444,10 +430,11 @@ def main(argv):
     threads = args.threads
     mu = args.mu
     rec = args.rec
-    eff_pop = args.eff_pop
+    eff_pop = args.ne
     global deme_gen
-    deme_gen = args.deme_gen
+    deme_gen = args.demegen
     pmap = args.pmap
+    recmaps = args.recmaps
 
     start = datetime.now()
     if type(args.sampling)==list and len(args.sampling) > 1:
@@ -719,6 +706,8 @@ def main(argv):
         plt.savefig('SFS_%s_%s_%s_%s.png' % (before_gen, after_gen, bfsamp, afsamp))
 
     # OUTPUT VCF for GWAS or iHS or nSL
+    dirname=os.path.dirname(os.path.abspath(__file__)) + "/scripts/"
+    gt_vcf_gwas=dirname + "gt_vcf_gwas.sh"
     if type(sampling)==list and len(sampling) > 1:
         sampling=str('%s_%s') % (bfsamp, afsamp)
     else:
@@ -751,7 +740,7 @@ def main(argv):
             print(merged_inds)
             with gzip.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
             # For IHS VCFs
@@ -773,7 +762,7 @@ def main(argv):
             merged_inds = [str(x) for x in merged_inds]
             with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
             merged = mutated.simplify(samples=after, reduce_to_site_topology=True)
@@ -793,7 +782,7 @@ def main(argv):
             print(len(simplified_inds), len(merged_inds))
             with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
             all_gens = [before_gen,after_gen]
@@ -826,12 +815,12 @@ def main(argv):
                             callset = allel.read_vcf('%s_chr%s.vcf.gz' % (ihs_name, chrom), region='chr%s' % (chrom))
                         vcf_pos = callset['variants/POS'].tolist()
                         #print(len(vcf_pos))
-                        map_rate = [x.split('\t')[2] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_rate = [x.split('\t')[2] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_rate = [float(i) for i in map_rate]
-                        map_cm = [x.split('\t')[3] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_cm = [x.split('\t')[3] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_cm = [float(i) for i in map_cm]
 
-                        map_pos = [x.split('\t')[1] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_pos = [x.split('\t')[1] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_pos = [int(i) for i in map_pos]
 
                         extrap_cm = interpolate.interp1d(map_pos, map_cm)
@@ -882,7 +871,7 @@ def main(argv):
             print(len(simplified_inds),len(merged_inds))
             with gzip.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
 
@@ -906,7 +895,7 @@ def main(argv):
             merged_inds = [str(x) for x in merged_inds]
             with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
             merged = mutated.simplify(samples=after, reduce_to_site_topology=True)
@@ -926,36 +915,10 @@ def main(argv):
             print(len(simplified_inds), len(merged_inds))
             with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
                 merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
             process.wait()
 
-            # merged = mutated.simplify(samples=before)
-            # merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
-            # merged_inds = before_inds
-            # print("Creating iHS VCFs now...")
-            # np.savetxt('nonWF_%s_%s_ihs.inds' % (bfsamp, before_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
-            # ihs_name = str('nonWF_%s_%s_ihs' % (bfsamp, before_gen))
-            # chrom = int(chromo[0])
-            # simplified_inds = list(dict.fromkeys(merged.individuals_alive_at(slim_gens-before_gen)))
-            # merged_inds = [str(x) for x in merged_inds]
-            # with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-            #     merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            # process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
-            # process.wait()
-            #
-            # merged = mutated.simplify(samples=after)
-            # merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
-            # merged_inds = after_inds
-            # np.savetxt('nonWF_%s_%s_ihs.inds' % (afsamp, after_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
-            # ihs_name = str('nonWF_%s_%s_ihs' % (afsamp, after_gen))
-            # chrom = int(chromo[0])
-            # simplified_inds = list(dict.fromkeys(merged.individuals_alive_at(slim_gens-after_gen)))
-            # merged_inds = [str(x) for x in merged_inds]
-            # with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-            #     merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            # process = subprocess.Popen(['bash', '/home/lnd775/data/develop/gt_vcf_gwas.sh', ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
-            # process.wait()
-
+            
             all_gens = [before_gen,after_gen]
             for g in all_gens:
                 if g==before_gen:
@@ -972,12 +935,12 @@ def main(argv):
                         callset = allel.read_vcf('%s_chr%s.vcf.gz' % (ihs_name, chrom), region='chr%s' % (chrom))
                         vcf_pos = callset['variants/POS'].tolist()
                         #print(len(vcf_pos))
-                        map_rate = [x.split('\t')[2] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_rate = [x.split('\t')[2] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_rate = [float(i) for i in map_rate]
-                        map_cm = [x.split('\t')[3] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_cm = [x.split('\t')[3] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_cm = [float(i) for i in map_cm]
 
-                        map_pos = [x.split('\t')[1] for x in open('/home/lnd775/data/slim_chr%s_recode.map' % (chrom)).readlines()]
+                        map_pos = [x.split('\t')[1] for x in open(recmaps + 'slim_chr%s_recode.map' % (chrom)).readlines()]
                         map_pos = [int(i) for i in map_pos]
 
                         extrap_cm = interpolate.interp1d(map_pos, map_cm)

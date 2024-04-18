@@ -1,38 +1,47 @@
 #!/bin/bash
 
-#gt=$1.gt
-#pos=$1.pos
+# Assign command-line arguments to variables
 inds=$1.inds
 chr=$2
 midchrom=$3
 gen1=$4
 gen2=$5
-#outpath=$4
-#awk '{ print "chr2\t"$1"\t.\t0\t1\t.\tPASS\t.\tGT"}' $pos | paste - $gt > tmp
 
-#This for actual VCF production
+# Actual VCF production begins here
 
-#awk -v chr="$chr" -v midchrom="$midchrom" '{ if ($1 >= midchrom) print "chr"chr+1"\t"$1-midchrom"\t.\tA\tG\t.\tPASS\tAA=A\tGT"; else print "chr"chr"\t"$1"\t.\tC\tT\t.\tPASS\tAA=C\tGT"}' $pos | paste - $gt > tmp${1}
+# Extract genotype information from VCF file and save it to ${1}.gt
 zcat ${1}.vcf.gz | awk 'f;/CHROM/{f=1}' - | cut -f10- > ${1}.gt
+
+# Process VCF file to create a modified VCF with updated chromosome and position information
 zcat ${1}.vcf.gz | awk 'f;/CHROM/{f=1}' - | cut -f2 | awk -v chr="$chr" -v midchrom="$midchrom" '{ if ($1 >= midchrom) print "chr"chr+1"\t"$1-midchrom"\t.\tA\tG\t.\tPASS\tAA=A\tGT"; else print "chr"chr"\t"$1"\t.\tC\tT\t.\tPASS\tAA=C\tGT"}' | paste - ${1}.gt > tmp${1}
+
+# Sort and process index file for VCF creation
 sort -k1n $1.inds | cut -f1 | tr "\n" "\t" | awk '{print "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t"$0}' | awk '{ sub(/[ \t]+$/, ""); print }' | cat - tmp${1} > tmp${1}.vcf
+
+# Create a temporary header file and concatenate with the modified VCF
 zcat ${1}.vcf.gz | head -n5  > tmp_${1}h.vcf
 zcat ${1}.vcf.gz | head -n4 | tail -1 | sed 's/chr21/chr22/g' >> tmp_${1}h.vcf
 echo '##INFO=<ID=AA,Number=2,Type=Flag,Description="AA">' >> tmp_${1}h.vcf
 cat tmp_${1}h.vcf tmp${1}.vcf > tmp_${1}.vcf
+
+# Clean up temporary files
 rm tmp_${1}h.vcf
-#zcat ~/results/select_gen_1.vcf.gz | head -n5 | cat - tmp${1}.vcf > tmp_${1}.vcf
 rm tmp${1}
 mv tmp_${1}.vcf ${1}_tmp.vcf
 rm tmp${1}.vcf
+
+# Wait for background processes to finish
 wait
 
+# Normalize and compress the modified VCF
 bcftools norm -d all -Oz -o ${1}.vcf.gz ${1}_tmp.vcf
+
+# Index the final VCF file
 bcftools index -f ${1}.vcf.gz
 
-#cp ${1}.vcf.gz ${1}.tmp && gunzip -c ${1}.tmp | awk -v chr="$chr" -v midchrom="$midchrom" '{ if ($2 >= midchrom && $1!~/#/){$1="chr"chr+1; $2=$2-midchrom} print $0}' OFS="\t" | bgzip -c > ${1}.vcf.gz
 wait
 
+# Clean up temporary files
 rm ${1}_tmp.vcf
 
 
@@ -46,7 +55,6 @@ if [[ "$1" == *"gwas"* ]]; then
 	 bcftools index -f ${1}_${4}_${5}.vcf.gz
 	 sort -k1n ${1}.inds | awk '{ if ($2 == "Dead") {print $1"\t"$1"\t"$2"\t1"}  else {print $1"\t"$1"\t"$2"\t2"} }' > ${1}_${4}_${5}.pheno
 	 rm ${1}.gt
-	 #rm ${1}.pos
 	 rm ${1}.inds
 
     plink --vcf ${1}_${4}_${5}.vcf.gz \

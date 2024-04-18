@@ -3,10 +3,9 @@ import yaml
 import subprocess
 
 SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
-DEADGEN="/home/lnd775/data/plague/scripts/plague_episelect.py"
-SELSCAN="selscan"
-SELNORM="norm"
-OUTMAIN = "/home/lnd775/data/buffalo/simulations/reg_burn/KNP_tweek/results/1gen/VAA08/"
+EPISELECT="episelect.py"
+GETTOP="scripts/get_top.R"
+OUTMAIN = config["OUTMAIN"]
 
 
 def num_sims():
@@ -32,12 +31,10 @@ rule get_selected:
         deme = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","deme.txt"),
     shell:
         """
-        #tail -n 1 {input} | grep 'Frequency' | tr -s 'Frequency:' '\\n' | tr 'at' '\\t' | awk ' $1 > {wildcards.f}-0.05 && $1 <={wildcards.f}+0.01 {{print$ 0}}' | sort -k2,2nr | head -n 1 | awk '{{print $2}}' > {output.sel}
         tail -n 1 {input} | grep 'Frequency' | tr -s 'Frequency:' '\\n' | tr 'at' '\\t' | awk ' $1 >= {wildcards.f} && $1 <= {wildcards.f}+0.005 {{print$ 0}}' | head -n 1 | awk '{{print $2}}' > {output.sel}
-        #tail -n 1 {input} | grep 'Frequency' | tr -s 'Frequency:' '\\n' | tr 'at' '\\t' | awk ' $1 >= {wildcards.f}-0.01 && ( $1 <= {wildcards.f}+0.005 || $1 <= {wildcards.f}+0.01 ) {{print$ 0}}' | head -n 1 | awk '{{print $2}}' > {output.sel}
         head -n 2 {input} | tail -n 1  > {output.deme}
         """
-# Rule to run the epidemic simulation in SLiM
+# Rule for dry running the epidemic simulation in SLiM to check seed
 rule dry_slim_epidemic:
     input:
         nonwf = "scripts/buffalo_{model}_{recovery}_it.slim",
@@ -73,7 +70,6 @@ rule run_slim_epidemic:
         deme=$(cat {input.deme});
         newseed=$(cat {input.newseed});
         {SLIM} -s $newseed -d deme=$deme -d pres={wildcards.s} -d fithom={params.fithom} -d selected=$selected -d "directory='{OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}'" -d I={wildcards.sim} {input.nonwf} > {output[0]}
-        #{SLIM} -s {wildcards.sim} -d deme=$deme -d pres={wildcards.s} -d fithom={params.fithom} -d selected=$selected -d "directory='{OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}'" -d I={wildcards.sim} {input.nonwf} > {output[0]}
         """
 if config["dead"]:
     rule run_episelect:
@@ -90,9 +86,9 @@ if config["dead"]:
             dead = config["dead"],
         run:
             if config["dead"]:
-                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --vcf --gwas --ihs --plots --pmap --generations {wildcards.gen1} {wildcards.gen2} --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
+                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {EPISELECT} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --vcf --gwas --ihs --plots --pmap --generations {wildcards.gen1} {wildcards.gen2} --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
             else:
-                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --plots --generations {wildcards.gen1} {wildcards.gen2} --vcf --ihs --pmap --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
+                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {EPISELECT} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --plots --generations {wildcards.gen1} {wildcards.gen2} --vcf --ihs --pmap --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
 else:
     rule run_episelect:
         input:
@@ -107,9 +103,9 @@ else:
             dead = config["dead"],
         run:
             if config["dead"]:
-                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --vcf --gwas --ihs --plots --pmap --generations {wildcards.gen1} {wildcards.gen2} --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
+                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {EPISELECT} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --vcf --gwas --ihs --plots --pmap --generations {wildcards.gen1} {wildcards.gen2} --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
             else:
-                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {DEADGEN} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --plots --generations {wildcards.gen1} {wildcards.gen2} --vcf --ihs --pmap --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
+                shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {EPISELECT} --nosel --seed {wildcards.resamp} --tree {input.tree} --muTree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}_mu.trees --select ${{selected}} --bottle 40002 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} --plots --generations {wildcards.gen1} {wildcards.gen2} --vcf --ihs --pmap --ne 100000 --mu 1.5e-8 --rec 1e-8 --demegen 40000")
 
 if config["dead"]:
     rule run_analyses:
@@ -123,7 +119,6 @@ if config["dead"]:
         params:
             midchrom = config["midchrom"],
             chrom = config["chrom"],
-            bin = 100,
         shell:
             """
             selected=$(cat {input.varpos});
@@ -134,9 +129,9 @@ if config["dead"]:
                 selected="chr{params.chrom[0]}_"$selected
             fi
             echo $selected;
-            Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.gwas} gwas $selected {wildcards.gen1} {wildcards.gen2}
-            Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
-            Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.gwas} gwas $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
             """
 else:
     rule run_analyses:
@@ -149,7 +144,6 @@ else:
         params:
             midchrom = config["midchrom"],
             chrom = config["chrom"],
-            bin = 100,
         shell:
             """
             selected=$(cat {input.varpos});
@@ -160,8 +154,8 @@ else:
                 selected="chr{params.chrom[0]}_"$selected
             fi
             echo $selected;
-            Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
-            Rscript scripts/get_top_ten.R {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
             """
 
 rule all:

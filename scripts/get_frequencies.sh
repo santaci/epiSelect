@@ -5,12 +5,12 @@ workd="/home/lnd775/data/plague/results/sweden/VAA${VAA}/"
 # This is for the True allele frequency
 freq=$(grep -w ${deme} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | awk '{print $3}')
 if [[ $gen1 == $gen2 ]]; then
-    grep -w ${gen1} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
+    grep -w ^${gen1} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
     cat ${workd}${model}${i}/plague_dead_readAF.txt | head -n 1 | cut -f1 | awk -v gen="$gen1" -v rec="$rec" -v i="$i" '{print gen"d\t0\t"$1"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
 
 else
-    grep -w ${gen1} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
-    grep -w ${gen2} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
+    grep -w ^${gen1} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
+    grep -w ^${gen2} ${workd}${model}${i}/${model}${i}.out | tail -n 1 | cut -f1-3 | awk -v rec="$rec" -v i="$i" '{print$0"\tsim_"i"\t"rec"\tFull"}' - >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
 fi
 
 }
@@ -50,7 +50,6 @@ else
 	echo -e ${gen1}"\t"${sample}"\t"$af"\tsim_"$i"\t"${rec}"\tresamp_"${k} >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
 
    	ac=$(echo -e ${counts} | awk '{print $2}')
-	#ac=$(zgrep -w ${selected} ${workd}${model}${i}/n${sample}_n${sample}/${k}/${gen1}_${gen2}/nonWF_${sample}_${sample}_${gen1}_${gen2}_FST.out.gz | grep ${selected} | cut -f5)
     af=$(echo -e ${ac} | awk -v sample="$sample" '{print $0/(2*sample)}')
     echo -e ${gen2}"\t"${sample}"\t"$af"\tsim_"$i"\t"${rec}"\tresamp_"${k} >> ${plots}/${gen1}_${gen2}/${model}_freq_n${sample}.txt
 fi
