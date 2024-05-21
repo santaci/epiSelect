@@ -28,6 +28,6 @@ The selection-driven simulations used in our manuscript can be found in the `inp
 
 Input III. Save generations of interest
 --------------
-Within the SLiM model of epidemic-driven selection, make sure to save the generations of interest for the output tree sequence. T
+Within the SLiM model of epidemic-driven selection, make sure to save the generations of interest for the output tree sequence. The command to do this in SLiM would be:
 `sim.treeSeqRememberIndividuals(p2.individuals)`
-`p2` is the population of interest in this case. Doing this in the early part ensures you are keeping those that have died.
+In this example, `p2` is the population of interest. Doing this in the early part ensures you are keeping those that have died.
