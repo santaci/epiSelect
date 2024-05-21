@@ -4,7 +4,7 @@ A simulation-based framework for exploring and detecting epidemic-driven selecti
 
 Dependencies
 -------------
-epiSelect relies on SLiM (), python (3.x.x), and R (v).
+`SimOutbreakSelection` (SOS) relies on SLiM (), python (3.x.x), and R (v).
 An appropriate environment can me installed using conda or micromamba.
 
 Installation
@@ -23,7 +23,7 @@ This is the most bespoke part of the framework---designing the trajectory and im
 - Bottleneck induced by the epidemic
 - Viability of those who are homozygous for the advantageous allele (i.e. selected variant)
 - The starting frequency of the variant under selection
-The selection-driven simulations used in our manuscript can be found in the `inputs/` folder of each respective epidemic. Note t
+The selection-driven simulations used in our manuscript can be found in the `inputs/` folder of each respective epidemic. Note that each mode of inheritance (mode of selection) is a separate SLiM script.
 
 
 Input III. Save generations of interest
