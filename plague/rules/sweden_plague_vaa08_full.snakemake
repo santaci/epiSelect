@@ -23,12 +23,13 @@ def num_resamp():
 
 sim=num_sims()
 resamp=num_resamp()
+v=0.8
 
 rule get_deme:
     input:
         "demographies/plagueGravel_{sim}.txt"
     output:
-        deme = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","deme.txt"),
+        deme = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","deme.txt"),
     shell:
         """
         head -n 2 {input} | tail -n 1  > {output.deme}
@@ -37,28 +38,28 @@ rule get_deme:
 rule run_slim_epidemic:
     input:
         nonwf = "scripts/sweden_{model}_{recovery}.slim",
-        deme = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","deme.txt"),
+        deme = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","deme.txt"),
     output:
-        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_s{s}_f{f}_sim{sim}.out"),
-        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
-        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt"),
+        os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_v{v}_f{f}_sim{sim}.out"),
+        os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
+        os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt"),
     params:
-    	fithom = 0.8,
+    	fithom = "{v}",
         
     log:
-        os.path.join(OUTMAIN,"logs","{model}_{recovery}_s{s}_f{f}_sim{sim}.out"),
+        os.path.join(OUTMAIN,"logs","{model}_{recovery}_v{v}_f{f}_sim{sim}.out"),
     shell:
         """
         deme=$(cat {input.deme});
-        {SLIM} -s {wildcards.sim} -d deme=$deme -d pres={wildcards.s} -d fithom={params.fithom} -d selFreq={wildcards.f} -d "directory='{OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.s}_f{wildcards.f}_sim{wildcards.sim}'" -d I={wildcards.sim} {input.nonwf} > {output[0]}
+        {SLIM} -s {wildcards.sim} -d deme=$deme -d fithom={params.fithom} -d selFreq={wildcards.f} -d "directory='{OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}'" -d I={wildcards.sim} {input.nonwf} > {output[0]}
         """
 #The n parameter (sample size) needs to be changed if different sample sizes
 rule recap:
     input:
-        tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
-        varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+        tree = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}.trees"),
+        varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
     output:
-        os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+        os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
     params:
         dead = config["dead"],
         n = config["n"],
@@ -71,14 +72,14 @@ rule recap:
 if config["dead"]:
     rule run_episelect:
         input:
-            tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
-            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
         output:
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
-            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
         params:
             dead = config["dead"],
         run:
@@ -86,13 +87,13 @@ if config["dead"]:
 else:
     rule run_episelect:
         input:
-            tree = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
-            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
         output:
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
-            os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz")
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz")
         params:
             dead = config["dead"],
         run:
@@ -101,12 +102,12 @@ else:
 if config["dead"]:
     rule run_analyses:
         input:
-            gwas = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
-            fst = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
-            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+            gwas = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
         output:
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_gwas_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_gwas_{gen1}_{gen2}.png"),
         params:
             midchrom = config["midchrom"],
             chrom = config["chrom"],
@@ -128,11 +129,11 @@ if config["dead"]:
 else:
     rule run_analyses:
         input:
-            fst = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
-            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_s{s}_f{f}_sim{sim}","selected.txt")
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
         output:
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
-            os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_jsfs_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_jsfs_{gen1}_{gen2}.png"),
         params:
             midchrom = config["midchrom"],
             chrom = config["chrom"],
@@ -153,5 +154,5 @@ else:
 # The n parameters (n, n2) needs to be changed if different sample sizes. Assume list e.g. [20,46]
 rule all:
     input:
-        expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"],n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
-        expand(os.path.join(OUTMAIN, "{model}_{recovery}_s{s}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"],n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], s=config["s"], f=config["f"], sim=num_sims(), n=config["n"], n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])
