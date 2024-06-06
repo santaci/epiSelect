@@ -6,7 +6,7 @@
 
 Dependencies
 -------------
-`SimOutbreakSelection` or `SOS` relies on [`SLiM`](https://github.com/MesserLab/SLiM/releases/tag/v3.3.1) (3.3.1) , python (3.7.12), and R (4.2.2). 
+`SimOutbreakSelection` or `SOS` relies on [`SLiM`](https://github.com/MesserLab/SLiM/releases/download/v3.3.1/SLiM.zip) (3.3.1) , python (3.7.12), and R (4.2.2). 
 
 Crucially `SOS` uses the following modules within python to handle `SLiM` tree sequence outputs: 
 * `tskit` (0.2.3) 
