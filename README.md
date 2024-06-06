@@ -6,7 +6,7 @@
 
 Dependencies
 -------------
-`SimOutbreakSelection` or `SOS` relies on `SLiM` (3.3.1) , python (3.7.12), and R (4.2.2). 
+`SimOutbreakSelection` or `SOS` relies on [`SLiM`](https://github.com/MesserLab/SLiM/releases/tag/v3.3.1) (3.3.1) , python (3.7.12), and R (4.2.2). 
 
 Crucially `SOS` uses the following modules within python to handle `SLiM` tree sequence outputs: 
 * `tskit` (0.2.3) 
@@ -94,7 +94,7 @@ Activate the SOS environment
 micromamba activate SOS
 ```
 
-An example usage using the demo data (`rinderpest/` and `plague/`) in this repository would be to first run the demographic history workflow:
+An example usage using the demo data (`rinderpest/`) in this repository would be to first run the demographic history workflow:
 ```
 cd rinderpest/
 snakemake all -p -s rules/african_buffalo_deme.snakemake --cores 10
