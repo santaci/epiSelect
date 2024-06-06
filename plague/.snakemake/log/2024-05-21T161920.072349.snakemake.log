@@ -1,3 +1,0 @@
-KeyError in file /maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake, line 157:
-'s'
-  File "/maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake", line 157, in <module>

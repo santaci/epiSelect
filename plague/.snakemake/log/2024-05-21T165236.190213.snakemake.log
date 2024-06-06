@@ -1,3 +1,0 @@
-NameError in file /maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake, line 35:
-name 'OUTMAIN' is not defined
-  File "/maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake", line 35, in <module>
