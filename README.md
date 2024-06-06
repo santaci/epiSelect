@@ -97,7 +97,7 @@ micromamba activate SOS
 An example usage using the demo data (`rinderpest/` and `plague/`) in this repository would be to first run the demographic history workflow:
 ```
 cd rinderpest/
-snakemake all -p -s rules/african_buffalo_deme.snakemake
+snakemake all -p -s rules/african_buffalo_deme.snakemake --cores 10
 ```
 
 Once that has completed and we have our tree sequence outputs of the host's demographic history, we can move on to the our epidemic-driven selection workflow.
