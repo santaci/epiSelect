@@ -1,5 +1,6 @@
 # SOS: SimOutbreakSelection
-### A simulation-based framework for exploring and detecting epidemic-driven selection
+
+
 ## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change in some scripts. !!!
 
 
