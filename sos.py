@@ -94,6 +94,12 @@ def parse_args(argv):
         action='store_true',
         help="Plot out results."
     )
+    
+    parser.add_argument(
+        "--winfst",
+        action='store_true',
+        help="Windowed FST 100kb."
+    )
 
     parser.add_argument(
         "--vcf",
@@ -198,8 +204,8 @@ def parse_args(argv):
         dest='dir',
         help="Working directory if different."
     )
-    tprint("epiSelect",font='Shimrod')
-    print("epiSelect v.1.0")
+    tprint("SOS",font='defleppard')
+    print("SimOutbreakSelection v.1.0")
     print("Cindy Santander and Ida Moltke.")
     args = parser.parse_args()
     print("Using " + str(args.threads) + " thread(s).\n")
@@ -218,7 +224,7 @@ def parse_args(argv):
 
 
     with open("nonWF_"+str(args.generations[0])+"_"+str(args.generations[1])+ "_n" + str(bfsamp) +"_n" + str(afsamp) + "_r" + str(args.seed) + ".args", "w") as f:
-            f.write("epiSelect v.1.0\n")
+            f.write("SimOutbreakSelection v.1.0\n")
             f.write("Time: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + "\n")
             f.write("Directory: " + str(os.getcwd()) + "\n")
             f.write("Options:\n")
@@ -421,6 +427,7 @@ def main(argv):
     nosel = args.nosel
     realhet = args.realhet
     plots = args.plots
+    winfst = args.winfst
     ihs = args.ihs
     gwas = args.gwas
     global putparents
@@ -608,14 +615,27 @@ def main(argv):
     pos = {}
     y = {}
     pos = merged_pos
-    blen = 1
-    windows = allel.moving_statistic(pos, statistic=lambda v: [v[0], v[-1]], size=blen)
-    x = np.asarray(windows).mean(axis=1)
+    if winfst==True:
+        blen = 100000
+    ##ONLY FOR WINFST 
+        y, windows, _ = allel.windowed_hudson_fst(pos, ac1, ac2, size=blen, step=int(blen/2))
+        x = windows[:,0]
+        gen2_r2=[0]*len(y)
+    else:
+        blen = 1
+        windows = allel.moving_statistic(pos, statistic=lambda v: [v[0], v[-1]], size=blen)
+        x = np.asarray(windows).mean(axis=1)
+        y, _, _ = allel.windowed_hudson_fst(pos, ac1, ac2, windows=windows)
+    
     x2 = [int(l)-midchrom if int(l) >= midchrom else int(l) for l in x]
     chr_fst = [chromo[1] if int(l) >= midchrom else chromo[0] for l in x]
     snp_fst = ["chr%s_%s" % (chromo[1],int(l)-midchrom) if int(l) >= midchrom else "chr%s_%s" % (chromo[0],int(l))for l in x]
-    y, _, _ = allel.windowed_hudson_fst(pos, ac1, ac2, windows=windows)
-    np.savetxt('nonWF_%s_%s_%s_%s_FST.out.gz' % (bfsamp,afsamp,before_gen,after_gen), np.c_[chr_fst,x2,y,count_of_allele_1,count_of_allele_2,gen2_r2,snp_fst], header="CHR\tPOS\tFST\tAC1\tAC2\tR2\tSNP", delimiter='\t', comments='',fmt=['%s','%s','%3s','%s','%s','%3s','%s'])
+    
+    if winfst==True:
+        np.savetxt('nonWF_%s_%s_%s_%s_FST.out.gz' % (bfsamp,afsamp,before_gen,after_gen), np.c_[chr_fst,x2,y,gen2_r2,snp_fst], header="CHR\tPOS\tFST\tR2\tSNP", delimiter='\t', comments='',fmt=['%s','%s','%3s','%s','%s'])
+    else:
+        np.savetxt('nonWF_%s_%s_%s_%s_FST.out.gz' % (bfsamp,afsamp,before_gen,after_gen), np.c_[chr_fst,x2,y,count_of_allele_1,count_of_allele_2,gen2_r2,snp_fst], header="CHR\tPOS\tFST\tAC1\tAC2\tR2\tSNP", delimiter='\t', comments='',fmt=['%s','%s','%3s','%s','%s','%3s','%s'])
+    
     del x2
     del chr_fst
     del snp_fst

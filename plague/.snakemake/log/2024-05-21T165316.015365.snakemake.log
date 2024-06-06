@@ -1,0 +1,3 @@
+WildcardError in file /maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake, line 160:
+No values given for wildcard 'vaa'.
+  File "/maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake", line 160, in <module>

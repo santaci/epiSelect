@@ -37,6 +37,8 @@ if(length(args) < 1) {
 if (missing(thetop) | is.null(thetop) | is.na(thetop)) {
   cat("You didn't provide a top number of candidates. Using top 10 as default.")
   thetop=c(10)
+} else {
+  thetop=as.integer(thetop)
 }
 
 library(utils)
@@ -59,7 +61,9 @@ run_fst<-function(df_fst) {
   top_idx<-fst_val_index$ix[1]
   topTen<-df_fst[top_idx,]
   new_df<-df_fst[-top_idx,]
-  fst_ind<-fst_val_index$ix
+  fst_ind = sort(new_df$FST,index.return=TRUE, decreasing = TRUE)
+  fst_ind = fst_ind$ix
+  #fst_ind<-fst_val_index$ix
   prev<-topTen
   for (y in 1:length(fst_ind)){
     minflank=prev$POS - 1000000
@@ -98,7 +102,9 @@ run_jsfs<-function(df_jsfs) {
   top_idx<-jsfs_val_index$ix[1]
   topTen<-df_jsfs[top_idx,]
   new_df<-df_jsfs[-top_idx,]
-  jsfs_ind<-jsfs_val_index$ix
+  jsfs_ind = sort(new_df$DEN,index.return=TRUE)
+  jsfs_ind = jsfs_ind$ix
+  #jsfs_ind<-jsfs_val_index$ix
   prev<-topTen
   for (y in 1:length(jsfs_ind)){
     minflank=prev$POS - 1000000
@@ -137,7 +143,9 @@ run_gwas<- function(df_gwas) {
   top_idx<-gwas_val_index$ix[1]
   topTen<-df_gwas[top_idx,]
   new_df<-df_gwas[-top_idx,]
-  gwas_ind<-gwas_val_index$ix
+  gwas_ind = sort(new_df$P,index.return=TRUE)
+  gwas_ind = gwas_ind$ix
+  #gwas_ind<-gwas_val_index$ix
   prev<-topTen
   for (y in 1:length(gwas_ind)){
     minflank=prev$BP - 1000000
@@ -175,7 +183,9 @@ run_ihs <- function(df_ihs) {
   top_idx<-ihs_val_index$ix[1]
   topTen<-df_ihs[top_idx,]
   new_df<-df_ihs[-top_idx,]
-  ihs_ind<-ihs_val_index$ix
+  ihs_ind = sort(new_df$V7,index.return=TRUE,decreasing = TRUE)
+  ihs_ind = ihs_ind$ix
+  #ihs_ind<-ihs_val_index$ix
   prev<-topTen
   for (y in 1:length(ihs_ind)){
     minflank=prev$V2 - 1000000

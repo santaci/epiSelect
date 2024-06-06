@@ -1,0 +1,14 @@
+model: "add"
+recovery: "grad"
+v: 1.0
+f: 0.3
+sim: 1
+n: 100
+resamp: 100
+deme: 1
+gen1: 58796
+gen2: 58800
+midchrom: 33759515
+chrom: [21, 22]
+OUTMAIN: "output"
+dead:

@@ -1,0 +1,115 @@
+Building DAG of jobs...
+candidate job all
+    wildcards: 
+candidate job run_slim_demography
+    wildcards: sim=1
+selected job run_slim_demography
+    wildcards: sim=1
+file demographies/buffalo_1.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=2
+selected job run_slim_demography
+    wildcards: sim=2
+file demographies/buffalo_2.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=3
+selected job run_slim_demography
+    wildcards: sim=3
+file demographies/buffalo_3.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=4
+selected job run_slim_demography
+    wildcards: sim=4
+file demographies/buffalo_4.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=5
+selected job run_slim_demography
+    wildcards: sim=5
+file demographies/buffalo_5.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=6
+selected job run_slim_demography
+    wildcards: sim=6
+file demographies/buffalo_6.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=7
+selected job run_slim_demography
+    wildcards: sim=7
+file demographies/buffalo_7.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=8
+selected job run_slim_demography
+    wildcards: sim=8
+file demographies/buffalo_8.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=9
+selected job run_slim_demography
+    wildcards: sim=9
+file demographies/buffalo_9.txt:
+    Producer found, hence exceptions are ignored.
+
+candidate job run_slim_demography
+    wildcards: sim=10
+selected job run_slim_demography
+    wildcards: sim=10
+file demographies/buffalo_10.txt:
+    Producer found, hence exceptions are ignored.
+
+selected job all
+    wildcards: 
+file None:
+    Producer found, hence exceptions are ignored.
+
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                    count    min threads    max threads
+-------------------  -------  -------------  -------------
+all                        1              1              1
+run_slim_demography       10              1              1
+total                     11              1              1
+
+Select jobs to execute...
+
+[Fri May 24 14:08:08 2024]
+rule run_slim_demography:
+    input: demographies/african_2chrom_Buffalo.slim
+    output: demographies/buffalo_4.txt
+    jobid: 4
+    reason: Missing output files: demographies/buffalo_4.txt
+    wildcards: sim=4
+    resources: tmpdir=/tmp
+
+
+        /home/lnd775/apps/software/SLiM-3.3.1/build/slim -s 4  demographies/african_2chrom_Buffalo.slim > demographies/buffalo_4.txt
+        
+Terminating processes on user request, this might take some time.
+[Fri May 24 14:08:18 2024]
+Error in rule run_slim_demography:
+    jobid: 4
+    input: demographies/african_2chrom_Buffalo.slim
+    output: demographies/buffalo_4.txt
+    shell:
+        
+        /home/lnd775/apps/software/SLiM-3.3.1/build/slim -s 4  demographies/african_2chrom_Buffalo.slim > demographies/buffalo_4.txt
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Complete log: .snakemake/log/2024-05-24T140749.946116.snakemake.log

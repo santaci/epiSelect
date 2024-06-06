@@ -1,0 +1,33 @@
+import os
+import yaml
+import subprocess
+import re
+
+SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
+OUTMAIN = "demographies/"
+
+# NUMBER OF DEMOGRAPHIC HISTORIES TO SIMULATE. DEFAULT = 10.
+demes=10
+
+def num_sims():
+    sims = demes
+    sim = list(range(1,sims+1,1))
+    sim = [str(x) for x in sim]
+    return sim
+
+sim=num_sims()
+
+rule run_slim_demography:
+    input:
+        wf = "demographies/sweden_2chrom_Gravel.slim",
+    output:
+        os.path.join(OUTMAIN,"plagueGravel_{sim}.txt"),
+        os.path.join(OUTMAIN,"plagueGravel_{sim}.trees"),
+    shell:
+        """
+        {SLIM} -s {wildcards.sim}  {input.wf} > {output[0]}
+        """
+
+rule all:
+    input:
+        expand(os.path.join(OUTMAIN, "plagueGravel_{sim}.trees"), sim=num_sims())

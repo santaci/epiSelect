@@ -1,0 +1,55 @@
+Building DAG of jobs...
+candidate job all
+    wildcards: 
+candidate job run_slim_demography
+    wildcards: sim=1
+selected job run_slim_demography
+    wildcards: sim=1
+file demographies/plagueGravel_1.trees:
+    Producer found, hence exceptions are ignored.
+
+selected job all
+    wildcards: 
+file None:
+    Producer found, hence exceptions are ignored.
+
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                    count    min threads    max threads
+-------------------  -------  -------------  -------------
+all                        1              1              1
+run_slim_demography        1              1              1
+total                      2              1              1
+
+Select jobs to execute...
+
+[Fri May 24 12:57:29 2024]
+rule run_slim_demography:
+    input: demographies/sweden_2chrom_Gravel.slim
+    output: demographies/plagueGravel_1.txt, demographies/plagueGravel_1.trees
+    jobid: 1
+    reason: Missing output files: demographies/plagueGravel_1.trees
+    wildcards: sim=1
+    resources: tmpdir=/tmp
+
+
+        /home/lnd775/apps/software/SLiM-3.3.1/build/slim -s 1  demographies/sweden_2chrom_Gravel.slim > demographies/plagueGravel_1.txt
+        
+[Fri May 24 13:58:32 2024]
+Finished job 1.
+1 of 2 steps (50%) done
+Select jobs to execute...
+
+[Fri May 24 13:58:32 2024]
+localrule all:
+    input: demographies/plagueGravel_1.trees
+    jobid: 0
+    reason: Input files updated by another job: demographies/plagueGravel_1.trees
+    resources: tmpdir=/tmp
+
+[Fri May 24 13:58:32 2024]
+Finished job 0.
+2 of 2 steps (100%) done
+Complete log: .snakemake/log/2024-05-24T125723.430782.snakemake.log

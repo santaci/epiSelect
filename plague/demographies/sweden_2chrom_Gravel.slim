@@ -10,7 +10,7 @@ initialize() {
 	
 	// Read combined HapMap for chr21 and chr22
 	
-	lines = readFile("/home/lnd775/data/recombination_map.TRANSPOSED.combined4.txt");
+	lines = readFile("inputs/recombination_map.TRANSPOSED.combined4.txt");
 	ends = asInteger(strsplit(lines[0]));
 	rates = asFloat(strsplit(lines[1]));
 	initializeRecombinationRate(rates, ends);
@@ -119,7 +119,7 @@ initialize() {
 				catn("0.3 AF Total: " + size(freqs[freqs >= 0.3 & freqs < 0.305]));
 				catn(getSeed() + ": ESTABLISHED - KEEP MUTATIONS");
 				catn("Frequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
-				sim.treeSeqOutput("/home/lnd775/data/plague/demographies/plagueGravel_" + simID + ".trees");
+				sim.treeSeqOutput("demographies/plagueGravel_" + simID + ".trees");
 				sim.deregisterScriptBlock(self);
 			
 			}

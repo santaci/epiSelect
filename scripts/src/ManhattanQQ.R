@@ -37,7 +37,6 @@ manhattan.plot<-function(chr, pos, pvalue,
   if (strsplit(selected,"_")[[1]][1]=="chr22") {
     selected=((as.integer(strsplit(selected,"_")[[1]][2]) + oldposmax[1]) /(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2]) }
   else{selected=(as.integer(strsplit(selected,"_")[[1]][2])/(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2])}
-  
   #parse annotations
   grp <- NULL
   ann.settings <- list()
@@ -392,9 +391,13 @@ ihs.plot<-function(chr, pos, pvalue,
   #print(oldposmax)
   #print(oldposshift)
   #print(max(oldpos))
+print("Selected variant:")
+  print(selected)
+
 if (strsplit(selected,"_")[[1]][1]=="chr22") {
 selected=((as.integer(strsplit(selected,"_")[[1]][2]) + oldposmax[1]) /(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2]) }
   else{selected=(as.integer(strsplit(selected,"_")[[1]][2])/(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2])}
+
 #print(selected)
   
   #parse annotations

@@ -56,9 +56,8 @@ fi
 done; }
 
 
-for VAA in 08; do
-for model in add_grad_s0.1_f0.4_sim; do
-#for model in add_grad_s0.1_f0.1_sim add_grad_s0.1_f0.2_sim add_grad_s0.1_f0.3_sim add_grad_s0.1_f0.4_sim; do
+for VAA in 1 08; do
+for model in add_grad_s0.1_f0.1_sim add_grad_s0.1_f0.2_sim add_grad_s0.1_f0.3_sim add_grad_s0.1_f0.4_sim; do
 #model="add_grad_s0.1_f0.1_sim"
 ih=$(echo ${model} | cut -d'_' -f1)
 midchrom=33759515

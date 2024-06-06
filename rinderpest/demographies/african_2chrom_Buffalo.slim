@@ -133,7 +133,7 @@ initialize() {
 			//catn("AF less than 33759515: " + size(freqs[freqs >= 0.2 & freqs < 0.205 & sim.mutationsOfType(m1).position < 33759515]));
 			catn(getSeed() + ": ESTABLISHED - KEEP MUTATIONS");
 			catn("Frequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
-			sim.treeSeqOutput("demeBuff_" + simID + ".trees");
+			sim.treeSeqOutput("demographies/demeBuff_" + simID + ".trees");
 			sim.deregisterScriptBlock(self);
 		}
 		else {

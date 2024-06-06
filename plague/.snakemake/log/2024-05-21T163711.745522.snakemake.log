@@ -1,0 +1,17 @@
+Building DAG of jobs...
+candidate job all
+    wildcards: 
+candidate job run_episelect
+    wildcards: v=08, model=add, recovery=grad, f=0.3, sim=1, n=100, n2=100, resamp=1, gen1=58796, gen2=58800
+candidate job recap
+    wildcards: v=08, model=add, recovery=grad, f=0.3, sim=1
+candidate job run_slim_epidemic
+    wildcards: v=08, model=add, recovery=grad, f=0.3, sim=1
+candidate job get_deme
+    wildcards: v=08, model=add, recovery=grad, f=0.3, sim=1
+MissingInputException in rule get_deme in file /maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake, line 30:
+Missing input files for rule get_deme:
+    output: outputs/VAA08/add_grad_v08_f0.3_sim1/deme.txt
+    wildcards: v=08, model=add, recovery=grad, f=0.3, sim=1
+    affected files:
+        inputs/demographies/plagueGravel_1.txt

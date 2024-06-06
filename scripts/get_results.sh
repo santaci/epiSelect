@@ -19,7 +19,7 @@ elif [[ $# -eq 4 ]] ; then
     midchrom=33759515
     nsims=10
     nresamp=100
-    workd="/home/lnd775/data/epiSelect/plague/results/"
+    workd="/home/lnd775/data/SimOutbreakSelection/rinderpest/outputs/"
 else
     deme=$5
     midchrom=$6
@@ -96,13 +96,19 @@ if [[ ${gen1} == ${gen2} ]] || [[ ! -z "$5" ]]; then
 fi
 
 #iHS results
-#counter=0
-#while read line; do
- # counter=$(echo ${counter}+1 | bc -l)
- # pos=$(echo ${line} | cut -d'_' -f2)
- # snp_ld=$(zcat ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/nonWF_${samples}_${gen1}_${gen2}_FST.out.gz | mawk -v chr="$chr" -v pos="$pos" '$1==chr && $2<=pos && max<$2{max=$2;s=$0}END{print s}' - | cut -f6 -)
- # tail -n +2 ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/ihs_after_${gen2}.top_cand.txt | grep -w ${line} - | mawk -v snp_ld="$snp_ld" -v k="$k" -v gravel="$gravel" -v selected="$selected" -v counter="$counter" -v freq="$freq" '{print $2"\t"$3"\t"$1"\t"$8"\t"counter"\t"gravel"\t"selected"\tiHS\tresamp_"k"\t"freq"\t"snp_ld}' >> ${plots}/${model}_n${sample}_topTen_mastertable.txt
-#done < <(tail -n +2 ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/ihs_after_${gen2}.top_cand.txt | cut -f1 -)
+for name in ihs*; do
+    if [[ -f "$name" ]]; then
+        counter=0
+        while read line; do
+            counter=$(echo ${counter}+1 | bc -l)
+            pos=$(echo ${line} | cut -d'_' -f2)
+            snp_ld=$(zcat ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/nonWF_${samples}_${gen1}_${gen2}_FST.out.gz | mawk -v chr="$chr" -v pos="$pos" '$1==chr && $2<=pos && max<$2{max=$2;s=$0}END{print s}' - | cut -f6 -)
+            tail -n +2 ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/ihs_after_${gen2}.top_cand.txt | grep -w ${line} - | mawk -v snp_ld="$snp_ld" -v k="$k" -v gravel="$gravel" -v selected="$selected" -v counter="$counter" -v freq="$freq" '{print $2"\t"$3"\t"$1"\t"$8"\t"counter"\t"gravel"\t"selected"\tiHS\tresamp_"k"\t"freq"\t"snp_ld}' >> ${plots}/${model}_n${sample}_topTen_mastertable.txt
+        done < <(tail -n +2 ${workd}${model}${i}/n${sample}/${k}/${gen1}_${gen2}/ihs_after_${gen2}.top_cand.txt | cut -f1 -)
+    else
+        "No iHS files here."
+    fi
+done
 
 done
 done

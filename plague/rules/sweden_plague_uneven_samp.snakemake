@@ -9,7 +9,7 @@ GETTOP="/home/lnd775/data/SimOutbreakSelection/scripts/get_top.R"
 OUTMAIN = config["OUTMAIN"]
 
 # Adjust viability and output folder
-v = 0.8
+v = config["v"]
 if (v < 1.0): 
     vaa = re.sub('\.','', str(v))
 else:
@@ -74,7 +74,7 @@ rule recap:
         gen1 = config["gen1"],
         gen2 = config["gen2"],
     run:
-        shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/ && python3 {SOS} --nosel --seed {params.resamp} --tree {input.tree} --muTree {output} --select ${{selected}} --bottle 58799 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {params.n} {params.n} --generations {params.gen1} {params.gen2} --demegen 58796 && rm {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nonWF_{params.n}_{params.n}_{params.gen1}_{params.gen2}_FST.out.gz")
+        shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/ && python3 {SOS} --nosel --seed {params.resamp} --tree {input.tree} --muTree {output} --select ${{selected}} --bottle 58799 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {params.n[0]} {params.n[1]} --generations {params.gen1} {params.gen2} --demegen 58796 && rm {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_s{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nonWF_{params.n}_{params.n}_{params.gen1}_{params.gen2}_FST.out.gz")
 
 if config["dead"]:
     rule run_episelect:
@@ -161,5 +161,5 @@ else:
 # The n parameters (n, n2) needs to be changed if different sample sizes. Assume list e.g. [20,46]
 rule all:
     input:
-        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"],n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
-        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"], n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"][0],n2=config["n"][1], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"][0], n2=config["n"][1], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])

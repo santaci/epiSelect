@@ -1,0 +1,4 @@
+TypeError in file /maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake, line 12:
+expected string or bytes-like object
+  File "/maps/projects/ilab/data/cindy/SimOutbreakSelection/plague/rules/sweden_plague_vaa08_full.snakemake", line 12, in <module>
+  File "/home/lnd775/micromamba/envs/episelect/lib/python3.7/re.py", line 194, in sub
