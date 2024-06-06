@@ -1,6 +1,7 @@
-# SOS
-## SimOutbreakSelection
-A simulation-based framework for exploring and detecting epidemic-driven selection
+# SOS: SimOutbreakSelection
+### A simulation-based framework for exploring and detecting epidemic-driven selection
+## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change in some scripts. !!!
+
 
 Dependencies
 -------------
@@ -83,7 +84,7 @@ dead:
 
 More examples can be found in the `configs/` folder of each respective epidemic.
 
-****NOTE: At the moment only SLiM code for additive and recessive selection have been provided as examples. An equation to implement a dominant model can be found in the Methods section of our manuscript.***
+****NOTE: At the moment only SLiM code for additive and recessive selection have been provided as examples. An equation to implement a dominant model can be found in the Materials & Methods section of our manuscript.***
 
 Quick usage
 -------------
