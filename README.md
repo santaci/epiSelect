@@ -1,4 +1,4 @@
-# SOS: SimOutbreakSelection
+# `SOS`: SimOutbreakSelection
 
 
 ## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change in some scripts. !!!
