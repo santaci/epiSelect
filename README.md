@@ -1,7 +1,7 @@
 # `S`im`O`utbreak`S`election
 
 
-## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change in some scripts. !!!
+## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change. !!!
 
 
 Dependencies
