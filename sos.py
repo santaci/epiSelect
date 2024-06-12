@@ -577,8 +577,8 @@ def main(argv):
     time_taken = end - start
     print('\nTime: ',time_taken)
 
-    # LD Decay Estimation
-    print("Estimating LD decay...")
+    
+    
     nac1 = count_of_allele_1 / num_gtbf
     nac2 = count_of_allele_2 / num_gtaf
     print("Beginning to simplify sub-sampled tree...")
@@ -592,36 +592,40 @@ def main(argv):
         selected = min(merged_pos, key=lambda x:abs(x-selected))
         site = merged_pos.index(selected)
 
-    # BEFORE
-    print("LD Before Processing...")
-    np.seterr(divide='ignore', invalid='ignore')
-    biG = merged.genotype_matrix()
-    genotypes = biG[:, :num_gtbf]
-    del biG
-    r2_site = get_LD_at_site(genotypes=genotypes, site_index=site)
-    gen1_r2 = r2_site
-
-    # AFTER
-    print("LD After Processing...")
-    biG = merged.genotype_matrix()
-    genotypes = biG[:, num_gtbf:]
-    del biG
-    r2_site = get_LD_at_site(genotypes=genotypes, site_index=site)
-    gen2_r2 = r2_site
-
-    # OUTPUT Fst WITH LD VALUES for usage in R
     ac1 = np.stack([num_gtbf - count_of_allele_1, count_of_allele_1], axis=1)
     ac2 = np.stack([num_gtaf - count_of_allele_2, count_of_allele_2], axis=1)
     pos = {}
     y = {}
     pos = merged_pos
+
+    
     if winfst==True:
-        blen = 100000
+        blen = 500000
     ##ONLY FOR WINFST 
-        y, windows, _ = allel.windowed_hudson_fst(pos, ac1, ac2, size=blen, step=int(blen/2))
+        y, windows, _ = allel.windowed_hudson_fst(pos, ac1, ac2, size=blen, step=int(blen/25))
         x = windows[:,0]
         gen2_r2=[0]*len(y)
     else:
+        # OUTPUT Fst WITH LD VALUES for usage in R
+        # LD Decay Estimation
+        # BEFORE
+        print("Estimating LD decay...")
+        print("LD Before Processing...")
+        np.seterr(divide='ignore', invalid='ignore')
+        biG = merged.genotype_matrix()
+        genotypes = biG[:, :num_gtbf]
+        del biG
+        r2_site = get_LD_at_site(genotypes=genotypes, site_index=site)
+        gen1_r2 = r2_site
+
+        # AFTER
+        print("LD After Processing...")
+        biG = merged.genotype_matrix()
+        genotypes = biG[:, num_gtbf:]
+        del biG
+        r2_site = get_LD_at_site(genotypes=genotypes, site_index=site)
+        gen2_r2 = r2_site
+        ## FST per SNP
         blen = 1
         windows = allel.moving_statistic(pos, statistic=lambda v: [v[0], v[-1]], size=blen)
         x = np.asarray(windows).mean(axis=1)

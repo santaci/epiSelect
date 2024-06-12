@@ -11,14 +11,19 @@ library(this.path)
 options(warn=-1, keep.source=T)
 args = commandArgs(trailingOnly=TRUE)
 script.dir=this.dir()
-if (!require(oldr)) install.packages(paste0(script.dir,"/src/oldr_0.1.0.tar.gz"))
-library(oldr)
-oldr::install.compatible.packages(“Matrix”)
-oldr::install.compatible.packages(“MASS”)
-oldr::install.compatible.packages("numDeriv")
-pacman::p_load(utils,tidyr,devtools,lattice,latticeExtra,data.table,R.utils,gtools,kableExtra,vcfR,ggpointdensity,rehh)
-if (!require(ggpubr)) devtools::install_github("kassambara/ggpubr")
-library(ggpubr)
+
+if (!require(ggpubr)) {
+	if (!require(oldr)) {
+	install.packages("oldr",lib_loc=paste0(script.dir,"/src/oldr_0.1.0.tar.gz"))
+	library(oldr)
+	oldr::install.compatible.packages("Matrix")
+	oldr::install.compatible.packages("MASS")
+	oldr::install.compatible.packages("numDeriv")
+	}
+	pacman::p_load(utils,tidyr,devtools,lattice,latticeExtra,data.table,R.utils,gtools,kableExtra,vcfR,ggpointdensity,rehh)
+	devtools::install_github("kassambara/ggpubr")
+	library(ggpubr)
+}
 
 # Get source file for Manhattan plots
 source(paste0(script.dir,"/src/ManhattanQQ.R"))
