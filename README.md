@@ -3,7 +3,7 @@
 #### !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change. !!!
 
 ## Table of Contents
-- [Dependencies] (#dependencies)
+- [Dependencies](#dependencies)
 - [Installation](#installation)
 - [Citation](#citation)
 - [Preparing Inputs](#preparing-inputs)
