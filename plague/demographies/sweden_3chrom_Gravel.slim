@@ -1,0 +1,176 @@
+initialize() {
+	//initializeSLiMOptions(keepPedigrees=T);
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	m1.mutationStackPolicy="f";
+	m1.convertToSubstitution=T;
+	initializeGenomicElement(g1, 0, 137875949);
+	
+	// Read combined HapMap for chr21 and chr22
+	
+	lines = readFile("inputs/recombination_map.TRANSPOSED.combined4.txt");
+	ends1 = asInteger(strsplit(lines[0]));
+	ends2 = asInteger(strsplit(lines[0])) + 68937975;
+	ends = c(ends1,ends2);
+	rates1 = asFloat(strsplit(lines[1]));
+	rates2 = asFloat(strsplit(lines[1]));
+	rates2[0] = 0.5;
+	rates2[44642] = 1e-8;
+	rates = c(rates1,rates2);
+	initializeRecombinationRate(rates, ends);
+}
+
+
+//late () {print(sim.generation);}
+
+// Create the ancestral African population
+1 { sim.addSubpop("p1", 7310);
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+}
+
+// Expand the African population to 14474
+// This occurs 148000 years (5920) generations ago
+52080 { p1.setSubpopulationSize(14474); }
+
+// Split non-Africans from Africans and set up migration between them
+// This occurs 51000 years (2040 generations) ago
+55960 {
+	sim.addSubpopSplit("p2", 1861, p1);
+	p1.setMigrationRates(c(p2), c(15e-5));
+	p2.setMigrationRates(c(p1), c(15e-5));
+}
+
+// Split p2 into European and East Asian subpopulations
+// This occurs 23000 years (920 generations) ago
+57080 {
+	sim.addSubpopSplit("p3", 554, p2);
+	p2.setSubpopulationSize(1032);  // reduce European size
+	
+	// Set migration rates for the rest of the simulation
+	p1.setMigrationRates(c(p2, p3), c(2.5e-5, 0.78e-5));
+	p2.setMigrationRates(c(p1, p3), c(2.5e-5, 3.11e-5));
+	p3.setMigrationRates(c(p1, p2), c(0.78e-5, 3.11e-5));
+	//	sim.chromosome.setMutationRate(2.36e-10);
+}
+
+55960 late() {
+	// save the state of the simulation
+	sim.treeSeqOutput("tmp/slim_" + simID + ".trees");
+	
+	// introduce the sweep mutation
+	loci=rdunif(1000000,min=1,max=137875949);
+	for (locus in loci) {
+		target = sample(p2.genomes, 1);
+		target.addNewDrawnMutation(m1, locus);
+	}
+
+}
+
+55960: late() {
+	if (size(sim.mutationsOfType(m1)) == 0)
+	{
+		catn(getSeed() + ": ALL LOST - RESTARTING");
+		sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
+		
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+		
+		// re-introduce the sweep mutation	
+		loci=rdunif(1000000,min=1,max=137875949);
+		
+		for (locus in loci) {
+			target = sample(p2.genomes, 1);
+			target.addNewDrawnMutation(m1, locus);
+		}
+	
+	}
+}
+
+// Set up exponential growth in Europe and East Asia
+// Where N(0) is the base subpopulation size and t = gen - 57080:
+//    N(Europe) should be int(round(N(0) * e^(0.0038*t)))
+//    N(East Asia) should be int(round(N(0) * e^(0.0048*t)))
+57080:58000 {
+	t = sim.generation - 57080;
+	p2_size = round(1032 * exp(0.0038 * t));
+	p3_size = round(554 * exp(0.0048 * t));
+	
+	p2.setSubpopulationSize(asInteger(p2_size));
+	p3.setSubpopulationSize(asInteger(p3_size));
+}
+
+// Set populations that are not of interest to zero before treeSeqOutput
+58000 {
+	p1.setSubpopulationSize(0);
+	p3.setSubpopulationSize(0);
+}
+
+58000:58773 {
+	sim.treeSeqSimplify();
+	t = sim.generation - 57080;
+	p2_size = round(1032 * exp(0.0038 * t));
+	p2.setSubpopulationSize(asInteger(p2_size));
+	catn("Generation: " + sim.generation + " PopSize: " + p2.individualCount);
+	//if (p2_size >= 700000)
+	if (sim.generation==58773)
+	{
+		mut = sim.mutationsOfType(m1);
+		if (size(mut) > 1)
+		{
+			freqs=sim.mutationFrequencies(p2);
+			if (any(freqs >= 0.2 & freqs < 0.205) & size(freqs[freqs >= 0.3 & freqs < 0.305]) >= 1) {
+				catn("0.2 AF Total: " + size(freqs[freqs >= 0.2 & freqs < 0.205]));
+				catn("0.3 AF Total: " + size(freqs[freqs >= 0.3 & freqs < 0.305]));
+				catn(getSeed() + ": ESTABLISHED - KEEP MUTATIONS");
+				catn("Frequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+				sim.treeSeqOutput("demographies/plagueGravel_" + simID + ".trees");
+				//sim.outputFull("demographies/plagueGravel_" + simID + ".out", ages=T);
+				sim.deregisterScriptBlock(self);
+			
+			}
+			else {
+				catn("All is lost.\n");
+				print(getSeed() +": RESTARTING\nFrequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+				// go back to generation 55960
+				sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
+				
+				// start a newly seeded run
+				setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+				
+				// re-introduce the sweep mutation
+				loci=rdunif(1000000,min=1,max=68937974);
+				for (locus in loci) {
+					target = sample(p2.genomes, 1);
+					target.addNewDrawnMutation(m1, locus);
+				}
+			
+			}
+		}
+		
+		else
+		{
+			print(getSeed() +": UNFIT - RESTARTING\nFrequency: " + sim.mutationFrequencies(p2) + " at " + sim.mutationsOfType(m1).position);
+			
+			// go back to generation 55960
+			sim.readFromPopulationFile("tmp/slim_" + simID + ".trees");
+			
+			// start a newly seeded run
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+			
+			// re-introduce the sweep mutation
+			loci=rdunif(1000000,min=1,max=137875949);
+			for (locus in loci) {
+				target = sample(p2.genomes, 1);
+				target.addNewDrawnMutation(m1, locus);
+			}
+		}
+	}
+}
+
+
+58773 {
+	sim.simulationFinished();
+}

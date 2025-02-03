@@ -3,8 +3,13 @@ import yaml
 import subprocess
 import re
 
+TMP = "tmp/"
+if not os.path.isdir(TMP):
+    os.makedirs(TMP)
+
 SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
 OUTMAIN = "demographies/"
+
 
 # NUMBER OF DEMOGRAPHIC HISTORIES TO SIMULATE. DEFAULT = 10.
 demes=10
@@ -19,11 +24,9 @@ sim=num_sims()
 
 rule run_slim_demography:
     input:
-        wf = "demographies/sweden_4chrom_Gravel.slim",
+        wf = "demographies/african_3chrom_Buffalo.slim",
     output:
-        os.path.join(OUTMAIN,"plagueGravel_{sim}.txt"),
-        os.path.join(OUTMAIN,"plagueGravel_{sim}.trees"),
-        #os.path.join(OUTMAIN,"plagueGravel_{sim}.out"),
+        os.path.join(OUTMAIN,"buffalo_{sim}.txt"),
     shell:
         """
         {SLIM} -s {wildcards.sim}  {input.wf} > {output[0]}
@@ -31,5 +34,4 @@ rule run_slim_demography:
 
 rule all:
     input:
-        #expand(os.path.join(OUTMAIN, "plagueGravel_{sim}.out"), sim=num_sims())
-        expand(os.path.join(OUTMAIN, "plagueGravel_{sim}.trees"), sim=num_sims())
+        expand(os.path.join(OUTMAIN, "buffalo_{sim}.txt"), sim=num_sims())

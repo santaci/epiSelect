@@ -7,7 +7,7 @@ SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
 OUTMAIN = "demographies/"
 
 # NUMBER OF DEMOGRAPHIC HISTORIES TO SIMULATE. DEFAULT = 10.
-demes=1
+demes=10
 
 def num_sims():
     sims = demes

@@ -51,8 +51,9 @@ def parse_args(argv):
         nargs=2,
         default=[58002, 58012],
         dest='generations',
-        help="Generations to be compared. (e.g. 58002 58012)."
+        help="Slim generations to be compared. (e.g. 58002 58012)."
     )
+
     parser.add_argument(
         "--chromosomes",
         type=int,
@@ -61,6 +62,7 @@ def parse_args(argv):
         dest='chromosomes',
         help="Chromosomes simulated in SLiM. (e.g. 21 22)."
     )
+
     parser.add_argument(
         "--dead",
         type=int,
@@ -134,7 +136,8 @@ def parse_args(argv):
     parser.add_argument(
         "--midchrom",
         type=int,
-        default=33759515,
+        nargs='+',
+        default=[33759515],
         help="Position to divide the chromosome made in SLiM for plots and VCF."
     )
 
@@ -409,6 +412,7 @@ def main(argv):
     import tskit
     import collections
     import glob
+    from Bio import bgzf
 
     # Saving command-line arguments
     np.random.seed(args.seed)
@@ -631,9 +635,37 @@ def main(argv):
         x = np.asarray(windows).mean(axis=1)
         y, _, _ = allel.windowed_hudson_fst(pos, ac1, ac2, windows=windows)
     
-    x2 = [int(l)-midchrom if int(l) >= midchrom else int(l) for l in x]
-    chr_fst = [chromo[1] if int(l) >= midchrom else chromo[0] for l in x]
-    snp_fst = ["chr%s_%s" % (chromo[1],int(l)-midchrom) if int(l) >= midchrom else "chr%s_%s" % (chromo[0],int(l))for l in x]
+    # Define breakpoints and new chromosome names
+    breakpoints = midchrom
+    breakpoints = [int(bp) for bp in breakpoints]
+    contig = mutated.sequence_length
+    new_chrom_names = [int(i+chromo[0]) for i in range(len(breakpoints) + 1)]
+    if len(chromo) == 1:
+        midchrom = [contig]
+
+    # Function to determine the new chromosome and adjusted position based on breakpoints
+    def get_new_chrom_and_pos(pos, breakpoints):
+        for i, bp in enumerate(breakpoints):
+            if pos < bp:
+                new_pos = pos if i == 0 else pos - breakpoints[i-1]
+                return new_chrom_names[i], new_pos
+        return new_chrom_names[-1], pos - breakpoints[-1]
+
+    # Calculate lengths of new chromosomes based on breakpoints
+    chrom_lengths = []
+    chrom_lengths.append(breakpoints[0])  # First segment length
+    for i in range(1, len(breakpoints)):
+        chrom_lengths.append(breakpoints[i] - breakpoints[i - 1])
+    chrom_lengths.append(contig - breakpoints[-1])  # Last segment length goes to the end of the chromosome
+    print(chrom_lengths)
+    #new_chrom, new_pos = get_new_chrom_and_pos(record.pos, breakpoints)
+    chr_fst, x2 = zip(*[get_new_chrom_and_pos(int(l), midchrom) for l in x])
+    snp_fst = ["chr%s_%s" % (chr, pos) for l in x for chr, pos in [get_new_chrom_and_pos(int(l), midchrom)]]
+
+    #x2 = [int(l)-midchrom if int(l) >= midchrom else int(l) for l in x]
+    
+    #chr_fst = [chromo[1] if int(l) >= midchrom else chromo[0] for l in x]
+    #snp_fst = ["chr%s_%s" % (chromo[1],int(l)-midchrom) if int(l) >= midchrom else "chr%s_%s" % (chromo[0],int(l)) for l in x]
     
     if winfst==True:
         np.savetxt('nonWF_%s_%s_%s_%s_FST.out.gz' % (bfsamp,afsamp,before_gen,after_gen), np.c_[chr_fst,x2,y,gen2_r2,snp_fst], header="CHR\tPOS\tFST\tR2\tSNP", delimiter='\t', comments='',fmt=['%s','%s','%3s','%s','%s'])
@@ -647,11 +679,13 @@ def main(argv):
 
     #PLOTTING CODE with LD colouring
     if plots==True:
+        #midchrom=midchrom[0]
         mpl.use('Agg')
         # Windowed FST - Full - LD color
         ac1 = np.stack([num_gtbf - count_of_allele_1, count_of_allele_1], axis=1)
         ac2 = np.stack([num_gtaf - count_of_allele_2, count_of_allele_2], axis=1)
-        chrom = '%s & %s' % (chromo[0],chromo[1])
+        chrom = ' & '.join(map(str,chromo))
+        #'%s & %s' % (chromo[0],chromo[1])
         fig = plt.figure(figsize=(20, 10))
         i = 1
         pos = {}
@@ -669,7 +703,8 @@ def main(argv):
         #dingdong = gen2_r2 > 0.1
         ax1 = plt.scatter(x, y, c=gen2_r2, cmap=plt.cm.jet, alpha=0.5);
         plt.scatter(x[site], y[site], c='deeppink', marker="*", s=100);
-        plt.vlines([midchrom], 0, 1.0, colors='r', linestyles='dashed')
+        for mid in midchrom:
+            plt.vlines([mid], 0, 1.0, colors='black', linestyles='solid')
         plt.colorbar(ax1, label=r'$r^{2}$')
         plt.ylim(0, 1.0);
         plt.xlim(0, max(pos))
@@ -731,13 +766,15 @@ def main(argv):
 
     # OUTPUT VCF for GWAS or iHS or nSL
     dirname=os.path.dirname(os.path.abspath(__file__)) + "/scripts/"
-    gt_vcf_gwas=dirname + "gt_vcf_gwas.sh"
+    gt_vcf_gwas=dirname + "import_pysam.py"
     if type(sampling)==list and len(sampling) > 1:
         sampling=str('%s_%s') % (bfsamp, afsamp)
     else:
         sampling=int(sampling[0])
     if vcf==True:
         if gwas==True and dead!=None and ihs==True:
+            midchrom=args.midchrom
+            midchrom=" ".join(str(item) for item in midchrom)
             # For GWAS VCF
             np.savetxt('nonWF_%s_gwas.inds' % sampling, np.c_[merged_inds, status_inds], delimiter='\t', fmt='%s')
             gwas_name = str('nonWF_%s_gwas' % sampling)
@@ -760,11 +797,11 @@ def main(argv):
             merged_inds = [str(x) for x in merged_inds]
 
             print(len(simplified_inds), len(merged_inds))
-            print(simplified_inds)
-            print(merged_inds)
-            with gzip.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            #print(simplified_inds)
+            #print(merged_inds)
+            with bgzf.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds, position_transform="legacy")
+            process = subprocess.Popen(['python', gt_vcf_gwas, '-f', gwas_name, '-c', str(chrom), '-g1', str(before_gen), '-g2', str(after_gen), '-bp', midchrom])
             process.wait()
 
             # For IHS VCFs
@@ -772,7 +809,7 @@ def main(argv):
             merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
             merged_inds = before_inds
 
-            np.savetxt('nonWF_%s_%s_ihs.inds' % (bfsamp, before_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
+            #np.savetxt('nonWF_%s_%s_ihs.inds' % (bfsamp, before_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
 
             print("Creating iHS VCFs now...")
             ihs_name = str('nonWF_%s_%s_ihs' % (bfsamp, before_gen))
@@ -784,16 +821,16 @@ def main(argv):
                     simplified_inds.append(q)
                     assert merged.node(ind.nodes[1]).is_sample()
             merged_inds = [str(x) for x in merged_inds]
-            with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            with bgzf.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds, position_transform="legacy")
+            process = subprocess.Popen(['python', gt_vcf_gwas, '-f', ihs_name, '-c', str(chrom), '-g1', str(before_gen), '-bp', midchrom])
             process.wait()
 
             merged = mutated.simplify(samples=after, reduce_to_site_topology=True)
             merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
             merged_inds = after_inds
 
-            np.savetxt('nonWF_%s_%s_ihs.inds' % (afsamp, after_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
+            #np.savetxt('nonWF_%s_%s_ihs.inds' % (afsamp, after_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
             ihs_name = str('nonWF_%s_%s_ihs' % (afsamp, after_gen))
             chrom = int(chromo[0])
             simplified_inds = []
@@ -804,9 +841,9 @@ def main(argv):
                     assert merged.node(ind.nodes[1]).is_sample()
             merged_inds = [str(x) for x in merged_inds]
             print(len(simplified_inds), len(merged_inds))
-            with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            with bgzf.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds, position_transform="legacy")
+            process = subprocess.Popen(['python', gt_vcf_gwas, '-f', ihs_name, '-c', str(chrom), '-g1', str(before_gen), '-g2', str(after_gen), '-bp', midchrom])
             process.wait()
 
             all_gens = [before_gen,after_gen]
@@ -873,6 +910,8 @@ def main(argv):
             print("You don't have dead people.")
 
         elif gwas==True and dead!=None:
+            midchrom=args.midchrom
+            midchrom=" ".join(str(item) for item in midchrom)
             # For GWAS VCF
             np.savetxt('nonWF_%s_gwas.inds' % sampling, np.c_[merged_inds, status_inds], delimiter='\t', fmt='%s')
             gwas_name = str('nonWF_%s_gwas' % sampling)
@@ -883,7 +922,7 @@ def main(argv):
                 if merged.node(ind.nodes[0]).is_sample():
                     simplified_inds.append(q)
                     assert merged.node(ind.nodes[1]).is_sample()
-            #print(len(simplified_inds))
+
             if before_gen!=after_gen or mix_cem!=None:
                 for q in merged.individuals_alive_at(slim_gens-after_gen):
                     ind = merged.individual(q)
@@ -893,13 +932,17 @@ def main(argv):
             merged_inds.sort()
             merged_inds = [str(x) for x in merged_inds]
             print(len(simplified_inds),len(merged_inds))
-            with gzip.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            with bgzf.open('%s.vcf.gz' % (gwas_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds,position_transform="legacy")
+            #process = subprocess.Popen(['bash', gt_vcf_gwas, gwas_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            process = subprocess.Popen(['python', gt_vcf_gwas, '-f', gwas_name, '-c', str(chrom), '-g1', str(before_gen), '-g2', str(after_gen), '-bp', midchrom])
             process.wait()
 
 
         elif ihs==True:
+            midchrom=args.midchrom
+            midchrom=" ".join(str(item) for item in midchrom)
+            final_length = mutated.sequence_length
             # For IHS VCFs
             merged = mutated.simplify(samples=before)
             merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
@@ -917,16 +960,20 @@ def main(argv):
                     simplified_inds.append(q)
                     assert merged.node(ind.nodes[1]).is_sample()
             merged_inds = [str(x) for x in merged_inds]
-            with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            with bgzf.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds, position_transform="legacy")
+            #process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(before_gen), str(after_gen), str(midchrom)])
+            if (before_gen == after_gen):
+                process = subprocess.Popen(['python', gt_vcf_gwas, '-f', ihs_name, '-c', str(chrom), '-g1', str(before_gen), '-bp', midchrom])
+            else:
+                process = subprocess.Popen(['python', gt_vcf_gwas, '-f', ihs_name, '-c', str(chrom), '-g1', str(before_gen), '-g2', str(after_gen), '-bp', midchrom])
             process.wait()
 
             merged = mutated.simplify(samples=after, reduce_to_site_topology=True)
             merged_pos = [int(x) for x in merged.tables.sites.asdict()['position']]
             merged_inds = after_inds
 
-            np.savetxt('nonWF_%s_%s_ihs.inds' % (afsamp, after_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
+            #np.savetxt('nonWF_%s_%s_ihs.inds' % (afsamp, after_gen), np.transpose(merged_inds), delimiter='\t', fmt='%s')
             ihs_name = str('nonWF_%s_%s_ihs' % (afsamp, after_gen))
             chrom = int(chromo[0])
             simplified_inds = []
@@ -937,9 +984,10 @@ def main(argv):
                     assert merged.node(ind.nodes[1]).is_sample()
             merged_inds = [str(x) for x in merged_inds]
             print(len(simplified_inds), len(merged_inds))
-            with gzip.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
-                merged.write_vcf(vcf_file,contig_id="chr"+str(chrom),individuals=simplified_inds,individual_names=merged_inds)
-            process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom), str(midchrom), str(before_gen), str(after_gen)])
+            with bgzf.open('%s.vcf.gz' % (ihs_name), "wt") as vcf_file:
+                merged.write_vcf(vcf_file,contig_id="genome",individuals=simplified_inds,individual_names=merged_inds, position_transform="legacy")
+            #process = subprocess.Popen(['bash', gt_vcf_gwas, ihs_name, str(chrom),  str(before_gen), str(after_gen), str(midchrom)])
+            process = subprocess.Popen(['python', gt_vcf_gwas, '-f', ihs_name, '-c', str(chrom), '-g1', str(before_gen), '-g2', str(after_gen), '-bp', midchrom])
             process.wait()
 
             

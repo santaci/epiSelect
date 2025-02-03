@@ -1,0 +1,184 @@
+import os
+import yaml
+import subprocess
+import re
+
+SLIM="/home/lnd775/apps/software/SLiM-3.3.1/build/slim"
+SOS="/home/lnd775/data/SimOutbreakSelection/sos.py"
+GETTOP="/home/lnd775/data/SimOutbreakSelection/scripts/get_top.R"
+OUTMAIN = config["OUTMAIN"]
+DIR = os.getcwd()
+
+# Adjust viability and output folder
+v = 1
+if (v < 1.0): 
+    vaa = re.sub('\.','', str(v))
+else:
+    vaa = int(v)
+
+OUTMAIN = f'{DIR}/{OUTMAIN}/VAA{vaa}/'
+
+def num_sims():
+    sims = config["sim"]
+    sim = list(range(1,sims+1,1))
+    sim = [str(x) for x in sim]
+    return sim
+
+def num_resamp():
+    resamps = config["resamp"]
+    resamp = list(range(1,resamps+1,1))
+    resamp = [str(x) for x in resamp]
+    return resamp
+
+
+sim=num_sims()
+resamp=num_resamp()
+
+if config["dead"]:
+    rule run_episelect:
+        input:
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+        params:
+            dead = config["dead"],
+            midchrom = [33759515, 68937975],
+            chrom = [21, 22, 23],
+        run:
+            shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {SOS} --nosel --seed {wildcards.resamp} --muTree {input.tree} --tree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}.trees --select ${{selected}} --bottle 58799 --dead {params.dead} --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} {wildcards.n2} --chromosomes {params.chrom} --midchrom {params.midchrom} --gwas --plots --generations {wildcards.gen1} {wildcards.gen2} --demegen 58796")
+else:
+    rule run_episelect:
+        input:
+            tree = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","{model}_{recovery}_{sim}_mu.trees"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "FST_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_LD_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"),
+            os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz")
+        params:
+            dead = config["dead"],
+            midchrom = [33759515, 68937975],
+            chrom = [21, 22, 23],
+        run:
+            shell("selected=$(cat {input.varpos}) && cd {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2}/ && python3 {SOS} --nosel --seed {wildcards.resamp} --muTree {input.tree} --tree {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/{wildcards.model}_{wildcards.recovery}_{wildcards.sim}.trees --select ${{selected}} --bottle 58799 --putparents {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/nwf_putparents_{wildcards.sim}.csv --sampling {wildcards.n} {wildcards.n2} --plots --chromosomes {params.chrom} --midchrom {params.midchrom} --generations {wildcards.gen1} {wildcards.gen2} --demegen 58796")
+
+if config["dead"]:
+    rule run_analyses:
+        input:
+            gwas = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_gwas_{gen1}_{gen2}_add.assoc.out.gz"),
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_gwas_{gen1}_{gen2}.png"),
+        params:
+            midchrom = [33759515, 68937975],
+            chrom = [21, 22, 23],
+            bin = 100,
+        shell:
+            """
+            selected=$(cat {input.varpos});
+            a="{params.chrom}"
+            b="{params.midchrom}"
+
+            readarray -td ' ' chrom_array <<<"$a "; unset 'chrom_array[-1]'; declare -p chrom_array;
+            readarray -td ' ' midchrom_array <<<"$b "; unset 'midchrom_array[-1]'; declare -p midchrom_array;
+            
+            # Print arrays for debugging
+            echo "Chromosome Array: ${{chrom_array[@]}}"
+            echo "Midchrom Array: ${{midchrom_array[@]}}"
+            echo "Selected position: $selected"
+            
+            # Loop over the midchrom and chrom arrays to determine which chromosome the selected position belongs to
+            for i in "${{!midchrom_array[@]}}"; do
+                mid=${{midchrom_array[$i]}}
+                next_mid=${{midchrom_array[$((i+1))]:-9999999999}}  # Handle the last chromosome by giving a large number
+
+                # Debug prints for each step
+                echo "Checking: Selected=$selected, Mid=$mid, Next Mid=$next_mid, Index=$i"
+
+                if [[ $selected -ge $mid && $selected -lt $next_mid ]]; then
+                    # Subtract mid value and assign the corresponding chromosome
+                    selected=$(echo "$selected - $mid" | bc -l)
+                    selected="chr${{chrom_array[$((i+1))]}}_$selected"
+                    echo "Assigned to Chromosome: $selected"
+                    break
+                elif [[ $selected -lt ${{midchrom_array[0]}} ]]; then
+                    # If selected position is less than the first midchrom, assign to first chromosome
+                    selected="chr${{chrom_array[0]}}_$selected"
+                    echo "Assigned to First Chromosome: $selected"
+                    break
+                fi
+            done
+
+            # Output the final selected value
+            echo "Final selected: $selected"
+
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.gwas} gwas $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            """
+else:
+    rule run_analyses:
+        input:
+            fst = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "nonWF_{n}_{n2}_{gen1}_{gen2}_FST.out.gz"),
+            varpos = os.path.join(OUTMAIN,"{model}_{recovery}_v{v}_f{f}_sim{sim}","selected.txt")
+        output:
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}","{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"),
+            os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_jsfs_{gen1}_{gen2}.png"),
+        params:
+            midchrom = [33759515, 68937975],
+            chrom = [21, 22, 23],
+            bin = 100,
+        shell:
+            """
+            selected=$(cat {input.varpos});
+            a="{params.chrom}"
+            b="{params.midchrom}"
+
+            readarray -td ' ' chrom_array <<<"$a "; unset 'chrom_array[-1]'; declare -p chrom_array;
+            readarray -td ' ' midchrom_array <<<"$b "; unset 'midchrom_array[-1]'; declare -p midchrom_array;
+            
+            # Print arrays for debugging
+            echo "Chromosome Array: ${{chrom_array[@]}}"
+            echo "Midchrom Array: ${{midchrom_array[@]}}"
+            echo "Selected position: $selected"
+            
+            # Loop over the midchrom and chrom arrays to determine which chromosome the selected position belongs to
+            for i in "${{!midchrom_array[@]}}"; do
+                mid=${{midchrom_array[$i]}}
+                next_mid=${{midchrom_array[$((i+1))]:-9999999999}}  # Handle the last chromosome by giving a large number
+
+                # Debug prints for each step
+                echo "Checking: Selected=$selected, Mid=$mid, Next Mid=$next_mid, Index=$i"
+
+                if [[ $selected -ge $mid && $selected -lt $next_mid ]]; then
+                    # Subtract mid value and assign the corresponding chromosome
+                    selected=$(echo "$selected - $mid" | bc -l)
+                    selected="chr${{chrom_array[$((i+1))]}}_$selected"
+                    echo "Assigned to Chromosome: $selected"
+                    break
+                elif [[ $selected -lt ${{midchrom_array[0]}} ]]; then
+                    # If selected position is less than the first midchrom, assign to first chromosome
+                    selected="chr${{chrom_array[0]}}_$selected"
+                    echo "Assigned to First Chromosome: $selected"
+                    break
+                fi
+            done
+
+            # Output the final selected value
+            echo "Final selected: $selected"
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} fst $selected {wildcards.gen1} {wildcards.gen2}
+            Rscript {GETTOP} {OUTMAIN}/{wildcards.model}_{wildcards.recovery}_v{wildcards.v}_f{wildcards.f}_sim{wildcards.sim}/n{wildcards.n}_n{wildcards.n2}/{wildcards.resamp}/{wildcards.gen1}_{wildcards.gen2} {input.fst} jsfs $selected {wildcards.gen1} {wildcards.gen2}
+            """
+# The n parameters (n, n2) needs to be changed if different sample sizes. Assume list e.g. [20,46]
+rule all:
+    input:
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "SFS_{gen1}_{gen2}_{n}_{n2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"],n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"]),
+        expand(os.path.join(OUTMAIN, "{model}_{recovery}_v{v}_f{f}_sim{sim}","n{n}_n{n2}","{resamp}", "{gen1}_{gen2}", "df_fst_{gen1}_{gen2}.png"), model=config["model"], recovery=config["recovery"], vaa=vaa, v=v, f=config["f"], sim=num_sims(), n=config["n"], n2=config["n"], resamp=num_resamp(), gen1=config["gen1"],gen2=config["gen2"])

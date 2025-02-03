@@ -1,8 +1,13 @@
-# `S`im`O`utbreak`S`election
+# SimOutbreakSelection
 
+#### !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change. !!!
 
-## !!! ``SOS`` is still a WIP.  Please be mindful that there are paths that require the user to manually change. !!!
-
+## Table of Contents
+- [Installation](#installation)
+- [Citation](#citation)
+- [Preparing Inputs](#preparing-inputs)
+- [Usage](#usage)
+- [License](#license)
 
 Dependencies
 -------------
@@ -13,7 +18,7 @@ Crucially `SOS` uses the following modules within python to handle `SLiM` tree s
 * `msprime` (0.7.4)
 * `pyslim` (0.403)
 
-An appropriate environment can be installed using conda or micromamba. Micromamba is highly recommended.
+An appropriate environment can be installed using conda or micromamba. [Micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) is highly recommended.
 
 Installation
 ------------
@@ -21,18 +26,21 @@ Installation
 # Create a conda environment
 micromamba env create -f environment.yml
 ```
+## Citation
 
-Preparing Inputs
-==============
-Input I. Simulating the demographic history of the host
---------------
+Our preprint is available on [BioRxiv](https://www.biorxiv.org/content/10.1101/2024.06.27.601009v1.full).
+
+## Preparing Inputs
+
+### Input I. Simulating the demographic history of the host
+
 This can be a well-defined model such as the Gravel model of human evoluton or can be a custom designed one based on curated information from relevant literature or in-house demographic inferencing.
 
 For example purposes, the demographic history of African Cape buffalo (`rinderpest/demographies/`) and the Medieval Swedish human population (`plague/demographies/`) have been provided to simulate in SLiM. 
 
 
-Input II. Simulating the epidemic of interest with selection using SLiM
---------------
+### Input II. Simulating the epidemic of interest with selection using SLiM
+
 This is the most bespoke part of the framework—designing the trajectory and implementing the key components into the simulation:
 - Bottleneck induced by the epidemic
 - Viability of those who are homozygous for the advantageous allele (i.e. selected variant)
@@ -40,8 +48,8 @@ This is the most bespoke part of the framework—designing the trajectory and im
 The selection-driven simulations used in our manuscript can be found in the `inputs/` folder of each respective epidemic. Note that each mode of inheritance (mode of selection) is a separate SLiM script.
 
 
-Input III. Save generations of interest
---------------
+### Input III. Save generations of interest
+
 Within the SLiM model of epidemic-driven selection, make sure to keep track of Pedigree IDs of the individuals that survive in the generation* of interest. 
 
 This would be done within the `intialize() {}` callback with the following command: 
@@ -58,8 +66,9 @@ In this example, `p2` is the population of interest.
 
 ****This is now `cycle` or `tick` for the newer SLiM versions.***
 
-Running `SOS` using Snakemake workflows
-==============
+## Usage
+
+### Running `SOS` using Snakemake workflows
 Snakemake workflows can be found within the `rules/` folders of each example epidemic in this repository. There are rules to run the demographic history (if you haven't done so already) as well as the epidemic part of the simulation.
 
 The epidemic simulation rules require a configuration file (.YAML) with the necessary parameters such as starting allele frequency (`f`), viability of the homozygous advantageous allele(`v`), and corresponding inheritance `model`* (i.e. `add` or `rec`). Other information such as which generations will be compared (`gen1` and `gen2`), the generation where there are dead to compare to survivors (`dead`), number of samples per grouping(`n`), number of simulations to perform (`sim`), and number of subsamplings per simulation (`resamp`) can be found within the configuration file. All parameters can be adjusted by the user. 
@@ -87,8 +96,8 @@ More examples can be found in the `configs/` folder of each respective epidemic.
 
 ****NOTE: At the moment only SLiM code for additive and recessive selection have been provided as examples. An equation to implement a dominant model can be found in the Materials & Methods section of our manuscript.***
 
-Quick usage
--------------
+### Quick usage
+
 Activate the SOS environment
 ```
 micromamba activate SOS
@@ -124,3 +133,6 @@ This script points to the directory where mastertables for the simulations of VA
 
 Rscript calculate_power.R outputs/plots/add/VAA1/ 3
 ```
+## License
+Distributed under the GNU General Public License v3.0. See the [LICENSE](./LICENSE) file for more information.
+

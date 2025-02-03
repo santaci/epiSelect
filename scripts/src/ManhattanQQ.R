@@ -19,7 +19,7 @@ manhattan.plot<-function(chr, pos, pvalue,
   }
   oldpos<-pos;
   oldposmax <- tapply(pos,chr, max);
-  #make sure positions are in kbp
+  #make sure positions are in Mbp
   if (any(pos>1e6)) pos<-pos/1e6;
   
   #calculate absolute genomic position
@@ -33,10 +33,25 @@ manhattan.plot<-function(chr, pos, pvalue,
     p<-posshift[as.character(cchr)]+cpos
     return(p)
   }
-  # Calculate where the selected SNP should be for vertical line
-  if (strsplit(selected,"_")[[1]][1]=="chr22") {
-    selected=((as.integer(strsplit(selected,"_")[[1]][2]) + oldposmax[1]) /(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2]) }
-  else{selected=(as.integer(strsplit(selected,"_")[[1]][2])/(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2])}
+
+# Extract chromosome and position from the selected SNP identifier
+selected_chr <- as.integer(strsplit(selected, "[_r]")[[1]][2])
+selected_pos <- as.integer(strsplit(selected, "_")[[1]][2])
+
+# Find the corresponding absolute genomic position for the selected SNP
+selected_genpos <- getGenPos(selected_chr, selected_pos)
+if (selected_chr %in% levels(chr)) {
+  chr_index=which(names(posmax) == as.character(selected_chr))
+  if (chr_index > 1){
+  chr_index = chr_index - 1
+  selected = (selected_genpos/1e6) + sum(posmax[c(1:chr_index)])
+  } else {
+    selected = (selected_genpos/1e6)
+  }
+} else {
+  stop("Selected SNP chromosome not found in the data.")
+}
+
   #parse annotations
   grp <- NULL
   ann.settings <- list()
@@ -389,16 +404,32 @@ ihs.plot<-function(chr, pos, pvalue,
     return(p)
   }
   #print(oldposmax)
-  #print(oldposshift)
   #print(max(oldpos))
 print("Selected variant:")
   print(selected)
 
-if (strsplit(selected,"_")[[1]][1]=="chr22") {
-selected=((as.integer(strsplit(selected,"_")[[1]][2]) + oldposmax[1]) /(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2]) }
-  else{selected=(as.integer(strsplit(selected,"_")[[1]][2])/(oldposmax[1] + max(oldpos)))*(posmax[1]+posmax[2])}
+  
+# Extract chromosome and position from the selected SNP identifier
+selected_chr <- as.integer(strsplit(selected, "[_r]")[[1]][2])
+selected_pos <- as.integer(strsplit(selected, "_")[[1]][2])
 
-#print(selected)
+if (grepl("chr",levels(chr)[1]) == TRUE) {
+  selected_chr=paste0("chr",selected_chr)
+}
+# Find the corresponding absolute genomic position for the selected SNP
+selected_genpos <- getGenPos(selected_chr, selected_pos)
+if (selected_chr %in% levels(chr)) {
+  chr_index=which(names(posmax) == as.character(selected_chr))
+  if (chr_index > 1){
+  chr_index = chr_index - 1
+  selected = (selected_genpos/1e6) + sum(posmax[c(1:chr_index)])
+  } else {
+    selected = (selected_genpos/1e6)
+  }
+} else {
+  stop("Selected SNP chromosome not found in the data.")
+}
+
   
   #parse annotations
   grp <- NULL
