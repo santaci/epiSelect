@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-cat("\nepiSelect:\nGet Top Candidates\n\n")
+cat("\nSOS:\nGet Top Candidates\n\n")
 
 .libPaths(c("/home/lnd775/R/x86_64-pc-linux-gnu-library/4.2.2/",.libPaths()))
 
